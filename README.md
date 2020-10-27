@@ -44,18 +44,11 @@ PLease "save" your Sonoff software first, before you flash OctoPlugout over it. 
 
 Consider buying me a coffee
 
-[![Buy me a coffee!](https://www.buymeacoffee.com/ruedli)
-
-
 <a href="https://www.buymeacoffee.com/ruedli" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
-
-
-<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="ruedli" data-color="#FFDD00" data-emoji=""  data-font="Cookie" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>
 
 ## Acknowledgments
 
 * Gina Häußge (@foosel) for her amazing work on OctoPrint, which without her, none of this would be even possible.
-* [anfichtn](https://github.com/anfichtn) for the first contributed example (ESP8266/WS2812BProgress) and some endpoint function calls.
 * Stephen Ludgate [chunkysteveo](https://github.com/chunkysteveo) for his OctoPrintAPI work.
 * Andreas Spiess https://www.youtube.com/channel/UCu7_D0o48KbfhpEohoP7YSQ for triggering discussion and the work necessary to complete the task.
 * Sander Verweij For his state machine representation which you find here: https://state-machine-cat.js.org/
