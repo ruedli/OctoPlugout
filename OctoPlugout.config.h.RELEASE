@@ -1,0 +1,112 @@
+// COPY this file and name it "OctoPlugout.config.h" This ensures I never overwrite you config file when updating.
+// Configuration version: 1.0
+//=========================================================================================================
+// For sure set THESE defines for your printer / octoprint installation
+
+#define ssid "WiFiName"         		// your network SSID (name)
+#define password "WiFiPassword" 		// your network password
+#define octoprint_apikey "D8F4....etc"	// The octoprint API key
+
+// Set this define to use the IP address to connect to octoprint. I was unsuccessful with the "hostname" method
+// So SET THIS DEFINE, and use the IP method for connecting, as I have not been able to connect using the "hostname".
+#define UseIP
+
+// This is the IP address of your octoprint server , in the example 192.168.3.68 is configured, adapt for your printer
+// Make sure, your printer ALWAYS get the same IP address, this is normally configurable in your router (if not the case by default).
+#define ip1 192
+#define ip2 168
+#define ip3 3
+#define ip4 68
+
+#define octoprint_httpPort 80 //If you are connecting through a router this will work, but you need a random port forwarded to the
+							  //OctoPrint server from your router. Enter that port here if you are external
+
+// This is the hostname of your octoprint server , in the example 'octopi' is configured, Only applicable when UseIP is NOT defined!
+#define octoprintHost "octopi"
+//=========================================================================================================
+//Set these to your own taste.
+
+// This is the hostname of your plug
+#define hostname "OctoPlugout"
+//Set the password, for Over The Air (WiFi) updates here.
+#define OTApass "1234"
+
+// Set this debug_ define to write information to the serial port, will NOT be visible over Wifi, only to the serial port
+//#define debug_
+
+//=========================================================================================================
+//These depend on your type of Sonoff, see e.g. guides on flashing "Tasmota" for information
+//define the used pins for your  Sonoff, below are the ones that apply to a S26
+#define PinButton 0
+#define PinRelay 12
+#define PinLED 13
+
+/* Initial state, use:
+  Relay_off                   the plug starts "unpowered" when plugged in.
+  Switched_ON                 the plug starts powered, but is NOT listening to Octoprint.
+  Waiting_for_print_activity  the plug starts powered, AND is listening to Octoprint.
+*/
+#define InitialState Waiting_for_print_activity
+
+// Timing stuff (all in ms)
+// Set to 60000: In case the WiFi is down, it attempts to restart the WiFi subsystem of the plug every minute
+#define CheckWifiState 60000
+
+// Set to 10: Debouncing buttons takes 10ms
+#define debounce_interval 10
+
+//Set to 600: If you press the button longer than 600ms, it is interpreted as a "long press"
+#define long_press_time 600
+
+//Set to  5000: this means when Octoprint is running, the job state is checked every 5s.
+#define OctoprintInterval_running 5000
+
+//Set to 15000: this means when Octoprint is NOT running, the job state is checked every 15s.
+#define OctoprintInterval_NOT_running 15000
+
+//Set to 30000: when a job is finished, power off is executed 30 seconds AFTER shutdown of the Pi.
+#define WaitPeriodForShutdown 30000
+
+//Set to 50.0: The raspberry is shutdown when the extruder temp is below this value:
+#define MaxExtruderTemperature 50.0
+
+// The states are as follows (see also the state diagram)
+
+//------------------------------------------------------------------------------
+// State ident    State
+//------------------------------------------------------------------------------
+//           0    Relay off
+//           1    Relay on
+//           2    Relay on, watching the printer job
+//           3    Relay on, watching the printer job connected to Octoprint
+//           4    Relay on, printjob is busy
+//           5    Relay on, print done, extruder HOT
+//           6    Relay on, print done, executing shutdown of the Pi
+//           7    Relay on, print done, Pi shutdown: waiting for power off
+
+// This defines the indication LED (its "on" time), to indicate a certain state.
+// Use 0 to avoid the LED coming on in this state.
+
+// The various states:
+
+// DO NOT UPDATE the state names! They are for reference to understand the "blinking definition below.
+enum state {
+  Relay_off,
+  Switched_ON,
+  Waiting_for_print_activity,
+  Waiting_for_print_activity_connected,
+  ready_for_shutting_down,
+  ready_for_shutting_down_extruder_HOT,  
+  shutting_down_PI,
+  delayed_powering_relay_off
+};
+
+
+// UPDATE the values, but keep as many values as defined.
+// 0 = Relay_Off, 1 = Switched_On, 2 = waiting_for_print_activity etc.
+// You define how many ms the LED is ON, and how many ms it is OFF. 
+//            State ident:     0    1    2    3    4    5    6    7                           
+const int LED_ON_TIME[]  = {   0,   0,  50,   50,2000, 500,2000,  50 };
+const int LED_OFF_TIME[] = {   0,   0,2000, 1000,2000,2000, 500, 200 };
+
+

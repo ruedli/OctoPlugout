@@ -1,0 +1,76 @@
+"unplugged",
+
+# PlugOut: an electrical plug Made from a "sonoff" device by reflashing the firmware that is:
+#- WiFi connected: not wired through eg. GPIO
+#- OctoPrint aware, but not a plugin: a PlugOut!
+#
+# Triger evaluation order:
+# - press: short (SP) and long (LP)
+# - WiFi: Down (Wifi-) and up (Wifi+)
+# - Pi:  Down (Pi-) / Alive (Pi+)
+# - Print state: Printing (Print+) / Not Printing (Print-)
+# - Extruder Temperature:  Hot (Temp+) / Cold (Temp-)
+#
+#use https://state-machine-cat.js.org/ to visualize these lines and see the states.
+
+"plugged" 
+{ "0: Relay OFF" [color="#ee2222"],  "Relay ON"  {
+
+//======================== Switched based transitions (blue)
+
+  "2: Waiting for print activity" => "3: waiting for printactivity (connected)" [color="blue"] :  Pi+;
+
+  "3: waiting for printactivity (connected)" => "4: ready for shutting down" [color="blue"] :  print+;
+  "3: waiting for printactivity (connected)" => "2: Waiting for print activity" [color="blue"] :   Pi- | WiFi-;
+
+  "4: ready for shutting down" => "5: ready for shutting down HOT" [color="blue"] :  print-;
+  "4: ready for shutting down" => "7: delayed powering relay off" [color="blue"] :  Pi-;
+
+  "5: ready for shutting down HOT" => "4: ready for shutting down" : print+;
+  "5: ready for shutting down HOT" => "6: shut down PI" [color="blue"] :  Temp-;
+  "5: ready for shutting down HOT" => "7: delayed powering relay off" [color="blue"] :  Pi-;
+
+  "6: shut down PI" => "7: delayed powering relay off" [color="blue"] :  Pi-; 
+
+  "7: delayed powering relay off" => "3: waiting for printactivity (connected)" [color="blue"] :  Pi+  ;
+
+//======================== Time based transitions (dark blue)
+
+  "7: delayed powering relay off" => "0: Relay OFF" [color="#2222AA"] :  timeout;
+
+//======================== Time based transitions (dark blue)
+
+  "7: delayed powering relay off" => "0: Relay OFF" [color="#2222AA"] :  timeout;
+
+//======================== Switched based transitions (red and green)
+
+  "1: Switched ON" => "2: Waiting for print activity" [color="#008800"] : SP;
+  "1: Switched ON" => "0: Relay OFF" [color="#ee2222"] :  LP; 
+
+  "2: Waiting for print activity" => "1: Switched ON"[color="#008800"]  : SP;
+  "2: Waiting for print activity" => "0: Relay OFF" [color="#ee2222"] : LP;
+
+  "3: waiting for printactivity (connected)" => "1: Switched ON" [color="#008800"]  : SP;
+  "3: waiting for printactivity (connected)" => "4: ready for shutting down" [color="#ee2222"] : LP;  
+
+  "4: ready for shutting down" => "1: Switched ON" [color="#008800"]  :  SP;
+  "4: ready for shutting down"=> "5: ready for shutting down HOT" [color="#ee2222"] : LP;
+
+  "5: ready for shutting down HOT" => "1: Switched ON" [color="#008800"]  : SP;
+
+  "6: shut down PI" => "1: Switched ON" [color="#008800"] : SP;
+
+  "7: delayed powering relay off" => "1: Switched ON"  [color="#008800"]  : SP   ;
+  "7: delayed powering relay off" => "0: Relay OFF" [color="#ee2222"] : LP;
+
+  "0: Relay OFF"  => "1: Switched ON" [color="#008800"] : SP;
+ 
+};
+
+"0: Relay OFF"  => "unplugged" : proper unplug;
+
+};
+
+"Relay ON"  => "unplugged" [color="purple"] : unproper unplug;
+"unplugged" => "1: Switched ON" [color="purple"] : plug in;
+
