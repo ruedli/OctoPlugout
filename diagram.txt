@@ -38,10 +38,6 @@
 
   "7: delayed powering relay off" => "0: Relay OFF" [color="#2222AA"] :  timeout;
 
-//======================== Time based transitions (dark blue)
-
-  "7: delayed powering relay off" => "0: Relay OFF" [color="#2222AA"] :  timeout;
-
 //======================== Switched based transitions (red and green)
 
   "1: Switched ON" => "2: Waiting for print activity" [color="#008800"] : SP;
