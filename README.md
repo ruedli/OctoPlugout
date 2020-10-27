@@ -12,7 +12,11 @@ In its essense this "Arduino" software just "lives" in the ESP8266 in a plug in 
 It uses a Sonoff plug, that you reflash with the sketch provided here. This plug communicates wirelessly with the Octoprint server running on the Raspberry Pi.
 After a print, it will wait for the extruder to cooldown, shutdown the Pi server and wait for the Pi to safely come to a stop. Then it will power off your Pi and the Printer.
 
-If no print is running and the extruder temperature is low, it will just initiate the shutdown, wait, and power off.
+**After your print** it will:
+- Wait for the extruder to cooldown
+- Shutdown the Pi
+- Wait for the Pi to finish shutting down
+- Power off, both **printer** and **Pi**
 
 ### What is in it for you?
 
