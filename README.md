@@ -6,7 +6,7 @@ Contrary to most contributions to Octoprint, this software is not a Plugin, but 
 Because it is not a plugin, but it is a socket in which you plug in your printer/Raspberry Pi powercord, I called it a "plugout", so OctoPlugout was born.
 
 In its essense this "Arduino" software just "lives" in the ESP8266 in a plug in the wall, in which you plug your Printer.
-<img align="left" style="padding-right:10px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/SONOF%20reflashed%20working.jpg" =250x>
+<img align="left" style="padding-right:10px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/SONOF%20reflashed%20working.jpg">
 
 ### What does it do?
 It uses a Sonoff plug, that you reflash with the sketch provided here. This plug communicates wirelessly with the Octoprint server running on the Raspberry Pi.
