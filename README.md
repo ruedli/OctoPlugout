@@ -2,10 +2,10 @@
 <img align="left" style="padding-right:10px;" src="https://octoprint.org/assets/img/logo.png">
 Contrary to most contributions to Octoprint, this software is not a Plugin, but software that talks to Octoprint through its API, but works outside of the framework of [OctoPrint](https://octoprint.org/). Octoprint needs no further introduction, it is the well known the 3D printer web server designed and maintained by the brilliant Gina Häußge, aka @foosel.
 
-### It is called "OctoPlugout"
-Because it is not a plugin, but still is programmed like a plugin, but outside of the framework, I called it a "plugout", so OctoPlugout was born.
+### I called it.... "OctoPlugout"
+Because it is not a plugin, but still is programmed like a plugin -outside of the framework-, I called it a "plugout". So... OctoPlugout was born.
 
-In its essense this "Arduino" software just "lives" in the ESP8266 in a wall plug in the wall, in which you plug the powercord of your Printer.
+In its essense this "Arduino" software just "lives" in the ESP8266 in a wall plug, in which you plug the powercord of your Printer.
 <img align="left" style="padding-right:30px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/SONOF%20reflashed%20working.jpg">
 
 ### What does it do?
@@ -21,7 +21,7 @@ It uses a Sonoff plug, that you flash with the sketch provided here. This allows
 
 OctoPlugout delivers a "one touch" safe shutdown button for both your Pi and printer! No additional wiring to the Pi, just the powercord!
 
-The beauty of the solution, is that unlike Tasmota or Sonoff, there is no separate software or framework locally or in the cloud. It is sufficient to directly (wireless) communicate between plug and octoprint.
+The beauty of the solution, is that unlike Tasmota or Sonoff, there is no separate software or framework. Neither locally nor in the cloud. It is sufficient to directly communicate (wirelessly) between the plug and octoprint.
 
 ### What does it need?
 
