@@ -54,7 +54,7 @@ In this state diagram the action that trigger state changes are:
 - Pi+: Octoprint is up, and the plug is connected.
 - print+: A print is running
 - print-: No print is running
-- temp-: The extruder is cool enough to oiwer off the printer
+- temp-: The extruder is cool enough to power off the printer
 - timeout: a sufficiently long time between "shutdown" of the Pi and poweringoff the Pi.
 
 I 3D-printed a convenient plug to flash the S26. You can find it here: https://www.thingiverse.com/thing:3193583
