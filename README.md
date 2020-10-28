@@ -49,6 +49,9 @@ The "OctoPlugout" sketch has ALL its configuration parameters in one place: the 
 
 Also the OctoprintAPI describes all these parameters in further details. The "green" ones should stay like they are. Consider the other parameters: you can adapt it to other Sonoff plugs (in case it uses different pins), as well as configure the 8 "blinking" patterns for the states the plug is in, as well as some timing parameters. The parameter file describes them.
 
+If you do not change the OTA password in the config file, when you "flash" over the air, the password is "1234".
+Note that this password only is in effect the NEXT time you flash OTA. If you forgotten the passowrd and lost the config file, you need to flash using the serial port, then no passowrd is required and you can (re)set the OTA password.
+
 ## States
 
 The states look like this:

@@ -429,7 +429,11 @@ void loop() {
 		switch(State) {
 		case delayed_powering_relay_off:
 			if ((Now - PowerOffRequested) > WaitPeriodForShutdown ) {
-				State = Relay_off;
+
+				// One "final check" whether Octoprint has come alive again...
+				if (OctoprintRunning()) {
+					State = Switched_ON;
+				} else State = Relay_off;  // If not... poweroff the printer and Pi!
 			}
 			break;
 		}		
