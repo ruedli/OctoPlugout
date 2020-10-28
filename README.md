@@ -78,11 +78,50 @@ Here you see the first flashing using its serial port. Later flashes can be done
 
 Please "save" your original Sonoff software first before you flash OctoPlugout over it. Instructions are here: https://hobbytronics.com.pk/sonoff-original-firmware-backup-restore/#Step-by-Step-Procedure 
 
-### If you like it...
+### Using it...
+
+In practice it is easier to operate how it looks in written form.
+
+In short: The red LED lights whenever the relay is on (so your printer/raspberry is powered). The green LED indicates interaction with Octoprint.
+
+No green LED: The plug stays on "forever" until you press something (see below).
+
+*Slooooooow blinking green* LED. It tries to find your printer.. When is is found: *Normal blinking green* LED.
+
+# Now there are three possibilities:
+- *Short press*: you go into "disconnected power on mode again", your printer will stasy on forever...
+- *Long press*: As soon as no print is running AND the extruder is cool, it will shutdown the Pi. The LED will blink very rapidly... It will look whether Octoprint "comes back" (LEDs not blinking) If it does (very rarely!!!), it goes in "switched on forever mode". If not (the normal case) after 30 seconds, the power is removed.
+- A print is *started... finishes.. the extruder cools down*: then the shutdown procedure is also triggered.
+
+# When in "switched on forever" (Only red LED, NO green)
+- A *short press* will go into "connected to octoprint mode".
+- A *long press* will power off.
+
+# When powered off:
+- A *short press* will "power on".
+
+During most states, you can always with a *short press* force "switch on mode forever", or a *long press* "power off immidiately". In the modes when it is connected where Octopint is alive, it will shutdown octoprint first.
+
+When your WiFi goes away, it will switch to "power on" and try to (re) connect mode. If it does, it will not shutdown Octoprint just like that when the extruder is cooled down.
+
+As you can see, there is quite some "sense" in the states and how the button operates. The state diagram is a good place to better understand what goes on in the plug, and what a button press (long or short) triggers. The LEDS show you in which state it is. Some states are "quickly passed", so the LED does not have time to reflect it in the blinking pattern. You will understand when you see it happening.
+
+You can configure "how the plug comes alive" when powering on the plug. Initially I configure "dumb mode - forever on", but in hind sight I liked "connected to octoprint" better. That is how the configuration template ships.
+
+If you don't like the blinking patterns per state, you can reconfigure them faster / slower / more flashy... whatever you like.
+If you do not like the timing: change it. But remember: interogating the API of octoprint takes some resources, so do not overdo it! By nature this plug only needs a "slow" update rate of information.
+
+For technical reasons: while it checks for "Octoprint" to be alive (and it is not) the LEDS do not blink for 3 seconds. So the states that assume Octoprint not to be there, reduce their update rate. 
+
+### If you like OctoPlugout...
 
 Consider buying me a coffee
 
 <a href="https://www.buymeacoffee.com/ruedli" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+
+# If you don't like OctoPlugout...
+
+Let me know, and I will see what I can do to make you like it.
 
 ## Acknowledgments
 
