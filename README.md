@@ -47,10 +47,10 @@ The "OctoPlugout" sketch has ALL its configuration parameters in one place: the 
 
 ![The critical configuration](https://github.com/ruedli/OctoPlugout/blob/master/images/config.jpg)  
 
-
 Also the OctoprintAPI describes all these parameters in further details. The "green" ones should stay like they are. Consider the other parameters: you can adapt it to other Sonoff plugs (in case it uses different pins), as well as configure the 8 "blinking" patterns for the states the plug is in, as well as some timing parameters. The parameter file describes them.
 
 ## States
+=======
 
 The states look like this:
 
