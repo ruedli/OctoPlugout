@@ -144,6 +144,8 @@ See the [LICENSE.md](LICENSE.md) file for details
 * 1.0 Initial Release
 
 ## Requests / Future To Do List
+- Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"
+- Show the "version" with a LED blinking pattern when stating up. 
 - Who can make the programmable with platformio?
 - A plugin interface that allows Octoprint to set a state with an embedded GCODE, so that Octoprint will trigger a "shutdown".
 
