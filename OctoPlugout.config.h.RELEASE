@@ -1,5 +1,7 @@
 // COPY this file and name it "OctoPlugout.config.h" This ensures I never overwrite you config file when updating.
-// Configuration version: 1.0
+// Version information
+#define OctoPlugout_config_version 1
+
 //=========================================================================================================
 // For sure set THESE defines for your printer / octoprint installation
 
@@ -46,9 +48,10 @@
   Switched_ON                 the plug starts powered, but is NOT listening to Octoprint.
   Waiting_for_print_activity  the plug starts powered, AND is listening to Octoprint.
 */
+//==================================================================== Set initial state after plugging in =
 #define InitialState Waiting_for_print_activity
 
-// Timing stuff (all in ms)
+//==================================================================== Timing stuff (all in ms) ============
 // Set to 60000: In case the WiFi is down, it attempts to restart the WiFi subsystem of the plug every minute
 #define CheckWifiState 60000
 
@@ -83,30 +86,21 @@
 //           5    Relay on, print done, extruder HOT
 //           6    Relay on, print done, executing shutdown of the Pi
 //           7    Relay on, print done, Pi shutdown: waiting for power off
+//           8    Relay on, going down, a controled power_off is requested
+
+//======================================================================Set Info LED stuff...  =============
+#define LED_blink_initial true
+#define LED_blink_flash true
 
 // This defines the indication LED (its "on" time), to indicate a certain state.
 // Use 0 to avoid the LED coming on in this state.
 
-// The various states:
-
-// DO NOT UPDATE the state names! They are for reference to understand the "blinking definition below.
-enum state {
-  Relay_off,
-  Switched_ON,
-  Waiting_for_print_activity,
-  Waiting_for_print_activity_connected,
-  ready_for_shutting_down,
-  ready_for_shutting_down_extruder_HOT,  
-  shutting_down_PI,
-  delayed_powering_relay_off
-};
-
-
 // UPDATE the values, but keep as many values as defined.
 // 0 = Relay_Off, 1 = Switched_On, 2 = waiting_for_print_activity etc.
 // You define how many ms the LED is ON, and how many ms it is OFF. 
-//            State ident:     0    1    2    3    4    5    6    7                           
-const int LED_ON_TIME[]  = {   0,   0,  50,   50,2000, 500,2000,  50 };
-const int LED_OFF_TIME[] = {   0,   0,2000, 1000,2000,2000, 500, 200 };
+//
+//            State ident:     0    1    2     3    4    5     6    7    8                        
+const int LED_ON_TIME[]  = {   0,   0,  50,   50,2000, 500, 2000,  50,  50 };
+const int LED_OFF_TIME[] = {   0,   0,2000,  500,2000,2000,  500, 200, 500 };
 
 

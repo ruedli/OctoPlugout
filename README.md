@@ -141,7 +141,12 @@ See the [LICENSE.md](LICENSE.md) file for details
 
 
 ## Release History
-* 1.0 Initial Release
+** 1.0 Initial Release
+
+** 1.1 Extra features
+- Extra state: "going down"
+- Parameters added for LED info extension (download and version blink pattern when booting up)
+- Check that the version of the configuration has all required parameters
 
 ## Requests / Future To Do List
 - Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"
