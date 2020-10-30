@@ -34,6 +34,10 @@
 
   "7: delayed powering relay off" => "3: waiting for printactivity (connected)" [color="blue"] :  Pi+  ;
 
+
+  "8: Going down" => "7: delayed powering relay off" [color="blue"] : Pi-;
+  "8: Going down" => "4: ready for shutting down"  [color="blue"] : Pi+;
+
 //======================== Time based transitions (dark blue)
 
   "7: delayed powering relay off" => "0: Relay OFF" [color="#2222AA"] :  timeout;
@@ -41,10 +45,10 @@
 //======================== Switched based transitions (red and green)
 
   "1: Switched ON" => "2: Waiting for print activity" [color="#008800"] : SP;
-  "1: Switched ON" => "0: Relay OFF" [color="#ee2222"] :  LP; 
+  "1: Switched ON" => "8: Going down" [color="#ee2222"] :  LP; 
 
   "2: Waiting for print activity" => "1: Switched ON"[color="#008800"]  : SP;
-  "2: Waiting for print activity" => "0: Relay OFF" [color="#ee2222"] : LP;
+  "2: Waiting for print activity" => "8: Going down" [color="#ee2222"] : LP;
 
   "3: waiting for printactivity (connected)" => "1: Switched ON" [color="#008800"]  : SP;
   "3: waiting for printactivity (connected)" => "4: ready for shutting down" [color="#ee2222"] : LP;  
@@ -60,7 +64,7 @@
   "7: delayed powering relay off" => "0: Relay OFF" [color="#ee2222"] : LP;
 
   "0: Relay OFF"  => "1: Switched ON" [color="#008800"] : SP;
- 
+
 };
 
 "0: Relay OFF"  => "unplugged" : proper unplug;
@@ -69,4 +73,3 @@
 
 "Relay ON"  => "unplugged" [color="purple"] : unproper unplug;
 "unplugged" => "1: Switched ON" [color="purple"] : plug in;
-
