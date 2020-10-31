@@ -2,7 +2,7 @@
  *  OctoPlugout                                                    */
 
 #define Version_major 1
-#define Version_minor 1
+#define Version_minor 2
  
  /*
  *  v1.0 - 27 oct 2020
@@ -198,6 +198,8 @@ enum state {
 
 state State;
 state LastState;
+bool  State_transition_checking_ok;
+
 
 // Timer stuff
 unsigned long OctoprintTimer;
@@ -353,6 +355,8 @@ void setup () {
 	// This is the initial state
 	State = InitialState;
 	LastState = delayed_powering_relay_off;    //Ensures InitialState is ALWAYS considered in the "loop".
+	State_transition_checking_ok = true;	   // Is set "after" the LED switches "off", to avoid that the LED is on, while timing out for Pi checking.
+
 
     OctoprintTimer = LastPressed = PowerOffRequested = TimerLED = 0;
 	WifiBeginDone = ULONG_MAX - CheckWifiState; // This ensures the wifi is initialized immediately.
@@ -406,6 +410,7 @@ void loop() {
 			}
 		} else {				//Set the time the LED should be OFF
 			IntervalLED=LED_OFF_TIME[State];
+			State_transition_checking_ok = true;	// Ensures the LED is OFF while checking the state.
 		}
 		digitalWrite(PinLED, LED_on ? LOW: HIGH);	// Actually switch the LED on or Off, depending on LED_on.
 	}
@@ -482,28 +487,33 @@ void loop() {
 
 		
 	// Now interpret every 15 or 5 (configurable) seconds whether the states need to change because of Octoprint statistics
-	} else if ((Now - OctoprintTimer) > OctoprintInterval) {
+	} else if (((Now - OctoprintTimer) > OctoprintInterval) and State_transition_checking_ok) {
 		#ifdef debug_
 		Serial.println("Checking State transitions");
 		#endif
 		OctoprintTimer = Now;
+		State_transition_checking_ok = false;
 		switch(State) {
 		case Waiting_for_print_activity: // 2
 			if (OctoprintRunning()) State = Waiting_for_print_activity_connected;
 			break;		
 		case Waiting_for_print_activity_connected: // 3
-			if (OctoprintNotRunning()) State = Waiting_for_print_activity;
+			if (OctoprintNotRunning(true)) State = Waiting_for_print_activity;
 			else if (OctoprintPrinting()) State = ready_for_shutting_down;		
 			break;
 		case ready_for_shutting_down: //4
-			if (OctoprintNotRunning(true)) State = delayed_powering_relay_off;
-			else if (OctoprintNotPrinting()) State = ready_for_shutting_down_extruder_HOT;
+			if (OctoprintNotPrinting()) State = ready_for_shutting_down_extruder_HOT;
 			break;				
 		case ready_for_shutting_down_extruder_HOT: // 5
 			if (OctoprintCool()) State = shutting_down_PI;
 			break;				
 		case shutting_down_PI : // 6
-			if (OctoprintNotRunning() or OctoprintShutdown()) {
+			if (OctoprintRunning()) {
+				if (OctoprintShutdown()) {
+					State = delayed_powering_relay_off;
+					PowerOffRequested = Now;
+				}
+			} else {
 				State = delayed_powering_relay_off;
 				PowerOffRequested = Now;
 			}
@@ -520,21 +530,20 @@ void loop() {
 			}
 			break;			
 		}
-
-	// Now interpret states that need to change independently of button presses, wifi or Octoprint statistics
-	} else {
-		switch(State) {
-		case delayed_powering_relay_off:
-			if ((Now - PowerOffRequested) > WaitPeriodForShutdown ) {
-
-				// One "final check" whether Octoprint has come alive again...
-				if (OctoprintRunning()) {State = Switched_ON;
-				} else State = Relay_off;  // If not... poweroff the printer and Pi!
-			}
-			break;
-		}		
-		
 	}
+	// Now interpret states that need to change independently of button presses, wifi or Octoprint statistics
+
+	switch(State) {
+	case delayed_powering_relay_off:
+		if ((Now - PowerOffRequested) > WaitPeriodForShutdown ) {
+
+			// One "final check" whether Octoprint has come alive again...
+			if (OctoprintRunning(false)) {State = Switched_ON;
+			} else State = Relay_off;  // If not... poweroff the printer and Pi!
+		}
+		break;
+	}		
+		
 	
 	//Set the next OctoprintInterval, may be shorted in the state change.
 	switch(State) {
@@ -631,8 +640,6 @@ bool OctoprintShutdown(void)
 	Serial.println("SHUTDOWN attempt");
 	#endif
 	if (WiFi.status() == WL_CONNECTED) {
-		// Switch the LED off, it might stay on for 3s otherwise...
-		digitalWrite(PinLED,HIGH); //switches it off...
 		if(api.getPrinterStatistics()) {
 			return api.octoPrintCoreShutdown();
 		} else {
@@ -650,8 +657,6 @@ bool OctoprintNotPrinting(bool Default) {
 bool OctoprintPrinting(bool Default)
 {
 	if (WiFi.status() == WL_CONNECTED) {
-		// Switch the LED off, it might stay on for 3s otherwise...
-		digitalWrite(PinLED,HIGH); //switches it off...		
 		if(api.getPrinterStatistics()) {
 			#ifdef debug_
 			Serial.print("Printer State - paused:  ");
@@ -698,8 +703,6 @@ bool OctoprintRunning(bool Default)
 	Serial.println("TEST whether Octoprint is running");
 	#endif
 	if (WiFi.status() == WL_CONNECTED) {
-		// Switch the LED off, it might stay on for 3s otherwise...
-		digitalWrite(PinLED,HIGH); //switches it off...
 		if (api.getPrinterStatistics()) {
 			OctoPrintDown = false;
 			return (true);
@@ -728,8 +731,6 @@ bool OctoprintCool(bool Default)
 	Serial.println("TEST whether extruder is cold");
 	#endif
 	if (WiFi.status() == WL_CONNECTED) {
-		// Switch the LED off, it might stay on for 3s otherwise...
-		digitalWrite(PinLED,HIGH); //switches it off...
 		if (api.getPrinterStatistics()) {
 			#ifdef debug_
 			Serial.print("Printer Temp - Tool0 (°C):  ");

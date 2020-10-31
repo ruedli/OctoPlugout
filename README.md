@@ -148,6 +148,8 @@ See the [LICENSE.md](LICENSE.md) file for details
 - Parameters added for LED info extension (download and version blink pattern when booting up)
 - Check that the version of the configuration has all required parameters
 
+** 1.2 Improved state transitions
+
 ## Requests / Future To Do List
 - Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"
 - Show the "version" with a LED blinking pattern when stating up. 
