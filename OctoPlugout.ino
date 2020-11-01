@@ -2,11 +2,21 @@
  *  OctoPlugout                                                    */
 
 #define Version_major 1
-#define Version_minor 2
+#define Version_minor 3
  
  /*
  *  v1.0 - 27 oct 2020
  *    Initial release 
+ *
+ *  v1.1 - 28 oct 2020
+ *    Additional state
+ *
+ *  v1.2 -  1 nov 2020
+ *    Improved state transitions
+ *    Avoid pi checking when LED is on
+ * 
+ *  v1.3 - 
+ *
  *
  *  An octoprint Arduino (ESP8266) sketch, to transform 
  *  a SonOff plug into an "intelligent" socket that will safely remove power
