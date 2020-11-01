@@ -41,6 +41,9 @@ I used the Arduino IDE to compile everything. You need:
 
 With OctoprintAPI you also find other preprequisites for installation and making the sketch work for your environment, follow these recommendations.
 
+- hint -
+Currently (1-11-2020) you could also install the OctoPrintAPI through the Arduino IDE, but.... This one is not the latest version. If you get an error "‘class OctoprintAPI’ has no member named ‘octoPrintCoreShutdown" your version is not up-to-date, install the library OctoPrintAPI directly from Stephen's github, as in the url above.
+
 The "OctoPlugout" sketch has ALL its configuration parameters in one place: the file OctoPlugout.config.h. Copy it from OctoPlugout.config.h.RELEASED and adapt it to your Octoprint and WiFi. Adapt at least these parameters indicated in yellow, this depends on the IP address of Octoprint and Octiprints so-called API-key (accessible through the settings of Octoprint).
 
 ### OctoPlugout.config.h
