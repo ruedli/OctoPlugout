@@ -147,9 +147,11 @@ Here are some examples: when the print is finished and will shutdown Octoprint w
 
 
 
+
 And when Octoprint has been shutdown, and the printer + Octoprint will be powered off.
 
 <img align="left" style="padding-right:30px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/poweroff.jpg">
+
 
 
 
