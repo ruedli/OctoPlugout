@@ -1,6 +1,6 @@
 // COPY this file and name it "OctoPlugout.config.h" This ensures I never overwrite you config file when updating.
 // Version information
-#define OctoPlugout_config_version 1
+#define OctoPlugout_config_version 2
 
 //=========================================================================================================
 // For sure set THESE defines for your printer / octoprint installation
@@ -73,6 +73,12 @@
 //Set to 50.0: The raspberry is shutdown when the extruder temp is below this value:
 #define MaxExtruderTemperature 50.0
 
+//Set to 120000: Determines a printjob should be active at least 2 minutes, before triggering shutdown: shorter => NO SHUTDOWN
+#define MinJobTime 120000
+
+//Set to 175: Determines a extruder should reach at least 175°C, before triggering shutdown: colder => NO SHUTDOWN
+#define MinExtruderTemperature 175.0
+
 // The states are as follows (see also the state diagram)
 
 //------------------------------------------------------------------------------
@@ -87,6 +93,7 @@
 //           6    Relay on, print done, executing shutdown of the Pi
 //           7    Relay on, print done, Pi shutdown: waiting for power off
 //           8    Relay on, going down, a controled power_off is requested
+//           9    Relay on, print started, wait until extruder gets HOT after reasonable time
 
 //======================================================================Set Info LED stuff...  =============
 #define LED_blink_initial true
@@ -99,13 +106,16 @@
 // 0 = Relay_Off, 1 = Switched_On, 2 = waiting_for_print_activity etc.
 // You define how many ms the LED is ON, and how many ms it is OFF. 
 //
-//            State ident:     0    1    2     3    4    5     6    7    8                        
-const int LED_ON_TIME[]  = {   0,   0,  50,   50,2000, 500, 2000,  50,  50 };
-const int LED_OFF_TIME[] = {   0,   0,2000,  500,2000,2000,  500, 200, 500 };
+//            State ident:     0    1    2     3    4    5     6    7    8    9                        
+const int LED_ON_TIME[]  = {   0,   0,  50,   50,2000, 500, 2000,  50,  50,2000};
+const int LED_OFF_TIME[] = {   0,   0,2000,  500,2000,2000,  500, 200, 500,4000};
 
 //======================================================================Define messages on printer  =============
 // Message_startup is formatted providing major and minor version as parameters
 #define Message_startup "M117 OctoPlugout %i.%i"
+
+// Message for announcing that OctoPlugout is set sharp: it will poweroff after the print
+#define Message_announce_print "M117 PRINT started"
 
 // Message for announcing that OctoPlugout is set sharp: it will poweroff after the print
 #define Message_announce_power_off "M117 Poweroff after PRINT"

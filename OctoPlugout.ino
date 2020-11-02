@@ -1,8 +1,8 @@
 /*******************************************************************
  *  OctoPlugout                                                    */
 
-#define Version_major 1
-#define Version_minor 4
+#define Version_major 2
+#define Version_minor 1
  
  /*
  *  v1.0 - 27 oct 2020
@@ -24,6 +24,12 @@
  *    - Print is monitored
  *    - Pi will be shutdwono
  *    - Power will be switched off.
+ *
+ * v 2.1 - 2 nov 2020
+ *  - Added an additional state "print started"
+ *    This state prevents very short / aborted print jobs (configurable time and reached extruder 
+ *    temperature) to trigger a shutdown/power off
+ *    Thnx to Tim for pointing this out!
  *
  *
  *  An octoprint Arduino (ESP8266) sketch, to transform 
@@ -101,8 +107,11 @@
 
   "2: Waiting for print activity" => "3: waiting for printactivity (connected)" [color="blue"] :  Pi+;
 
-  "3: waiting for printactivity (connected)" => "4: ready for shutting down" [color="blue"] :  print+;
+  "3: waiting for printactivity (connected)" => "9: print started" [color="blue"] :  print+;
   "3: waiting for printactivity (connected)" => "2: Waiting for print activity" [color="blue"] :   Pi- | WiFi-;
+
+  "9: print started" => "4: ready for shutting down"   [color="blue"] : Temp+ & Time+;
+  "9: print started" => "3: waiting for printactivity (connected)"   [color="blue"] : print-;
 
   "4: ready for shutting down" => "5: ready for shutting down HOT" [color="blue"] :  print-;
   "4: ready for shutting down" => "7: delayed powering relay off" [color="blue"] :  Pi-;
@@ -114,7 +123,6 @@
   "6: shut down PI" => "7: delayed powering relay off" [color="blue"] :  Pi-; 
 
   "7: delayed powering relay off" => "3: waiting for printactivity (connected)" [color="blue"] :  Pi+  ;
-
 
   "8: Going down" => "7: delayed powering relay off" [color="blue"] : Pi-;
   "8: Going down" => "4: ready for shutting down"  [color="blue"] : Pi+;
@@ -132,7 +140,10 @@
   "2: Waiting for print activity" => "8: Going down" [color="#ee2222"] : LP;
 
   "3: waiting for printactivity (connected)" => "1: Switched ON" [color="#008800"]  : SP;
-  "3: waiting for printactivity (connected)" => "4: ready for shutting down" [color="#ee2222"] : LP;  
+  "3: waiting for printactivity (connected)" => "4: ready for shutting down" [color="#ee2222"] : LP;
+
+  "9: print started" => "1: Switched ON" [color="#008800"]  : SP;
+  "9: print started" => "4: ready for shutting down" [color="#ee2222"] : LP;
 
   "4: ready for shutting down" => "1: Switched ON" [color="#008800"]  :  SP;
   "4: ready for shutting down"=> "5: ready for shutting down HOT" [color="#ee2222"] : LP;
@@ -208,6 +219,10 @@ WiFiClient client;
 #define Message_startup "M117 OctoPlougout %i.%i"
 #endif
 
+#ifndef Message_announce_print
+#define Message_announce_print "M117 PRINT started"
+#endif
+
 #ifndef message_poweroff
 #define Message_announce_power_off "M117 Poweroff after PRINT"
 #endif
@@ -233,7 +248,8 @@ enum state {
   ready_for_shutting_down_extruder_HOT,  
   shutting_down_PI,
   delayed_powering_relay_off,
-  going_down
+  going_down,
+  print_started
 };
 
 
@@ -251,6 +267,7 @@ unsigned long PowerOffRequested;
 unsigned long TimerLED;
 unsigned long IntervalLED;
 unsigned long OctoprintInterval;
+unsigned long Time_print_started;
 
 // The state of the info LED
 #if LED_blink_flash==true
@@ -270,6 +287,7 @@ bool OctoprintNotRunning(bool Default = false);
 bool OctoprintPrinting   (bool Default = false);
 bool OctoprintNotPrinting(bool Default = false);
 
+bool OctoprintTemperatureTest(float Temperature, bool Default = false);
 bool OctoprintCool(bool Default = false);
 bool OctoprintHot (bool Default = false);
 
@@ -479,6 +497,10 @@ void loop() {
 			}
 		}
 	}
+
+	// Initialize message on LCD
+	char Message[40];
+	Message[0] = '\0';
 	
 	// Interpret buttons immediately when detected (after release), actions involving transitions and printer job every 5 seconds
 	if (ShortPress or LongPress) {
@@ -514,7 +536,7 @@ void loop() {
 			
 			break;		
 		case Waiting_for_print_activity_connected: // 3
-		case delayed_powering_relay_off : // 7			
+		case print_started : // 9			
 			if (ShortPress) {
 				State = Switched_ON;
 			} else if (LongPress) {
@@ -527,7 +549,14 @@ void loop() {
 			} else if (LongPress) {
 				State = ready_for_shutting_down_extruder_HOT;
 			}
-			break;			
+			break;	
+		case delayed_powering_relay_off : // 7
+			if (ShortPress) {
+				State = Switched_ON;
+			} else if (LongPress) {
+				State = Relay_off;
+			}
+			break;		
 		}
 
 		
@@ -543,14 +572,25 @@ void loop() {
 			if (OctoprintRunning()) State = Waiting_for_print_activity_connected;
 			break;		
 		case Waiting_for_print_activity_connected: // 3
-			if (OctoprintNotRunning()) State = Waiting_for_print_activity;
-			else if (OctoprintPrinting()) State = ready_for_shutting_down;		
+			if (OctoprintNotRunning(true)) State = Waiting_for_print_activity;
+			else if (OctoprintPrinting()) {
+				State = print_started;
+				Time_print_started = Now;
+			}				
+			break;
+		case print_started : // 9			
+			if (OctoprintNotPrinting(true)) State = Waiting_for_print_activity_connected;
+			else if (((Now - Time_print_started) > MinJobTime) and OctoprintHot()) State = ready_for_shutting_down;	
 			break;
 		case ready_for_shutting_down: //4
 			if (OctoprintNotPrinting()) State = ready_for_shutting_down_extruder_HOT;
 			break;				
 		case ready_for_shutting_down_extruder_HOT: // 5
 			if (OctoprintCool()) State = shutting_down_PI;
+			else {
+				snprintf(Message,40,message_temperature,MaxExtruderTemperature);
+				api.octoPrintPrinterCommand(Message);
+			}
 			break;				
 		case shutting_down_PI : // 6
 			if (OctoprintRunning()) {
@@ -655,8 +695,6 @@ void loop() {
 		LastState = State; 
 
 		//Set the next OctoprintInterval, SHORTEN the state change and display messages.
-		char Message[40];
-		Message[0] = '\0';
 		switch(State) {
 		case Waiting_for_print_activity_connected: // 3
 			snprintf(Message,30,Message_startup,Version_major,Version_minor);
@@ -669,15 +707,14 @@ void loop() {
 			api.octoPrintPrinterCommand(Message);
 			OctoprintInterval = 200; // Poll faster (only ONCE)
 			break;
-		case ready_for_shutting_down_extruder_HOT: // 5
-			snprintf(Message,40,message_temperature,MaxExtruderTemperature);
-			api.octoPrintPrinterCommand(Message);
-			OctoprintInterval = 200; // Poll faster (only ONCE)
-			break;
 		case shutting_down_PI: // 6
 			snprintf(Message,30,message_poweroff,WaitPeriodForShutdown/1000);
 			api.octoPrintPrinterCommand(Message);
 			OctoprintInterval = 200; // Poll faster (only ONCE)
+			break;
+		case print_started: // 9
+			snprintf(Message,30,Message_announce_print);
+			api.octoPrintPrinterCommand(Message);
 			break;
 		case delayed_powering_relay_off : // 7		
 		case going_down: // 8		
@@ -784,10 +821,14 @@ bool OctoprintRunning(bool Default)
 }
 
 bool OctoprintHot(bool Default) {
-	return not OctoprintCool(not Default);
+	return not OctoprintTemperatureTest(MinExtruderTemperature, not Default);
 }
 
-bool OctoprintCool(bool Default)
+bool OctoprintCool(bool Default) {
+	return OctoprintTemperatureTest(MaxExtruderTemperature, Default);
+}
+	
+bool OctoprintTemperatureTest(float ExtruderTemp, bool Default)
 {
 	#ifdef debug_
 	Serial.println("TEST whether extruder is cold");
@@ -798,7 +839,7 @@ bool OctoprintCool(bool Default)
 			Serial.print("Printer Temp - Tool0 (°C):  ");
 			Serial.println(api.printerStats.printerTool0TempActual);
 			#endif
-			return (api.printerStats.printerTool0TempActual < MaxExtruderTemperature);
+			return (api.printerStats.printerTool0TempActual < ExtruderTemp);
 		} else {
 			#ifdef debug_
 			Serial.println("Octoprint not running");

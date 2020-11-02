@@ -70,7 +70,8 @@ In this state diagram the action that trigger state changes are:
 - Pi+: Octoprint is up, and the plug is connected.
 - print+: A print is running
 - print-: No print is running
-- temp-: The extruder is cool enough to power off the printer
+- temp-: The extruder is cooled enough to power off the printer
+- temp+: The extruder is heated up enough to trigger shutdown procedure after print
 - timeout: a sufficiently long time between "shutdown" of the Pi and poweringoff the Pi.
 
 ## Flashing a Sonoff
@@ -163,6 +164,13 @@ See the [LICENSE.md](LICENSE.md) file for details
      - Print is monitored
      - Pi will be shutdwono
      - Power will be switched off.
+
+** 2.1 Messages - 2 nov 2020
+-    Main version 2.x because you need to configute the LED_ON / LED_OFF time for the new state (print_started)
+     
+	 This new state prevents very short / aborted print jobs (configurable time and reached extruder 
+     temperature) to trigger a shutdown/power off
+     Thnx to Tim for pointing this out!
 
 ## Requests / Future To Do List
 - Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"

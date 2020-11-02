@@ -20,8 +20,11 @@
 
   "2: Waiting for print activity" => "3: waiting for printactivity (connected)" [color="blue"] :  Pi+;
 
-  "3: waiting for printactivity (connected)" => "4: ready for shutting down" [color="blue"] :  print+;
+  "3: waiting for printactivity (connected)" => "9: print started" [color="blue"] :  print+;
   "3: waiting for printactivity (connected)" => "2: Waiting for print activity" [color="blue"] :   Pi- | WiFi-;
+
+  "9: print started" => "4: ready for shutting down"   [color="blue"] : Temp+ & Time+;
+  "9: print started" => "3: waiting for printactivity (connected)"   [color="blue"] : print-;
 
   "4: ready for shutting down" => "5: ready for shutting down HOT" [color="blue"] :  print-;
   "4: ready for shutting down" => "7: delayed powering relay off" [color="blue"] :  Pi-;
@@ -33,7 +36,6 @@
   "6: shut down PI" => "7: delayed powering relay off" [color="blue"] :  Pi-; 
 
   "7: delayed powering relay off" => "3: waiting for printactivity (connected)" [color="blue"] :  Pi+  ;
-
 
   "8: Going down" => "7: delayed powering relay off" [color="blue"] : Pi-;
   "8: Going down" => "4: ready for shutting down"  [color="blue"] : Pi+;
@@ -51,7 +53,10 @@
   "2: Waiting for print activity" => "8: Going down" [color="#ee2222"] : LP;
 
   "3: waiting for printactivity (connected)" => "1: Switched ON" [color="#008800"]  : SP;
-  "3: waiting for printactivity (connected)" => "4: ready for shutting down" [color="#ee2222"] : LP;  
+  "3: waiting for printactivity (connected)" => "4: ready for shutting down" [color="#ee2222"] : LP;
+
+  "9: print started" => "1: Switched ON" [color="#008800"]  : SP;
+  "9: print started" => "4: ready for shutting down" [color="#ee2222"] : LP;
 
   "4: ready for shutting down" => "1: Switched ON" [color="#008800"]  :  SP;
   "4: ready for shutting down"=> "5: ready for shutting down HOT" [color="#ee2222"] : LP;
@@ -73,3 +78,4 @@
 
 "Relay ON"  => "unplugged" [color="purple"] : unproper unplug;
 "unplugged" => "1: Switched ON" [color="purple"] : plug in;
+
