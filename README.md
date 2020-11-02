@@ -105,7 +105,7 @@ No green LED: The plug stays on "forever" until you press something (see below).
 ### When powered off:
 - A *short press* will "power on".
 
-During most states, you can always with a *short press* force "switch on mode forever", or a *long press* "power off immidiately". In the modes when it is connected where Octopint is alive, it will shutdown octoprint first.
+During most states, you can always with a *short press* force "switch on mode forever", or a *long press* "power off immidiately". In the modes when it is connected where Octoprint is alive, it will shutdown octoprint first.
 
 When your WiFi goes away, it will switch to "power on" and try to (re) connect mode. If it does, it will not shutdown Octoprint just like that when the extruder is cooled down.
 
@@ -117,6 +117,68 @@ If you don't like the blinking patterns per state, you can reconfigure them fast
 If you do not like the timing: change it. But remember: interogating the API of octoprint takes some resources, so do not overdo it! By nature this plug only needs a "slow" update rate of information.
 
 For technical reasons: while it checks for "Octoprint" to be alive (and it is not) the LEDS do not blink for 3 seconds. So the states that assume Octoprint not to be there, reduce their update rate. 
+
+## I do not see anything of this in Octoprint
+True, allthough the LEDS blink and reflect the state the plug is in, it is difficult to see what is going on. This is why I updated OctoPlugout so that it shows messages on the LCD of your printer. Your printer should be able to understand the standard Marlin M117 GCODE.
+
+Here are some examples: when the print is finished and will shutdown Octoprint when it is cooled down.
+
+<img align="left" style="padding-right:30px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/shutdown.jpg">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+And when Octoprint has been shutdown, and the printer + Octoprint will be powered off.
+
+<img align="left" style="padding-right:30px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/poweroff.jpg">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## If you like OctoPlugout...
 
