@@ -123,79 +123,12 @@ True, allthough the LEDS blink and reflect the state the plug is in, it is diffi
 
 Here are some examples: when the print is finished and will shutdown Octoprint when it is cooled down.
 
-<img align="left" style="padding-right:30px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/shutdown.jpg">
-
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
+![shutdown illustration](https://github.com/ruedli/OctoPlugout/blob/master/images/shutdown.jpg) 
 
 And when Octoprint has been shutdown, and the printer + Octoprint will be powered off.
 
-<img align="left" style="padding-right:30px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/poweroff.jpg">
+![poweroff illustration](https://github.com/ruedli/OctoPlugout/blob/master/images/poweroff.jpg) 
 
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
-"\
-
-"
 ## If you like OctoPlugout...
 
 Consider buying me a coffee
