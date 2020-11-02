@@ -41,8 +41,9 @@ I used the Arduino IDE to compile everything. You need:
 
 With OctoprintAPI you also find other preprequisites for installation and making the sketch work for your environment, follow these recommendations.
 
-- hint -
-Currently (1-11-2020) you could also install the OctoPrintAPI through the Arduino IDE, but.... This one is not the latest version. If you get an error "‘class OctoprintAPI’ has no member named ‘octoPrintCoreShutdown" your version is not up-to-date, install the library OctoPrintAPI directly from Stephen's github, as in the url above.
+*hint*
+*Currently (1-11-2020) you could also install the OctoPrintAPI through the Arduino IDE, but.... This one is not the latest version. If you get an error "‘class OctoprintAPI’ has no member named ‘octoPrintCoreShutdown" your version is not up-to-date, install the library OctoPrintAPI directly from Stephen's github, as in the url above.*
+
 
 The "OctoPlugout" sketch has ALL its configuration parameters in one place: the file OctoPlugout.config.h. Copy it from OctoPlugout.config.h.RELEASED and adapt it to your Octoprint and WiFi. Adapt at least these parameters indicated in yellow, this depends on the IP address of Octoprint and Octiprints so-called API-key (accessible through the settings of Octoprint).
 
@@ -144,18 +145,28 @@ See the [LICENSE.md](LICENSE.md) file for details
 
 
 ## Release History
-** 1.0 Initial Release
+** 1.0 Initial Release - 30 oct 2020
 
-** 1.1 Extra features
+** 1.1 Extra features  - 1 nov 2020
 - Extra state: "going down"
 - Parameters added for LED info extension (download and version blink pattern when booting up)
 - Check that the version of the configuration has all required parameters
 
 ** 1.2 Improved state transitions
 
+** 1.3 Not released
+
+** 1.4 Messages - 2 nov 2020
+-    State interpretation also when LED is configured to be off
+-    Messages on the LCD of your printer, when 
+     - plug is connected 
+     - Print is monitored
+     - Pi will be shutdwono
+     - Power will be switched off.
+
 ## Requests / Future To Do List
 - Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"
-- Show the "version" with a LED blinking pattern when stating up. 
+- DONE Show the "version" with a LED blinking pattern when stating up. 
 - Who can make the programmable with platformio?
 - A plugin interface that allows Octoprint to set a state with an embedded GCODE, so that Octoprint will trigger a "shutdown".
 

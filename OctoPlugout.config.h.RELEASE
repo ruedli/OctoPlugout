@@ -103,4 +103,15 @@
 const int LED_ON_TIME[]  = {   0,   0,  50,   50,2000, 500, 2000,  50,  50 };
 const int LED_OFF_TIME[] = {   0,   0,2000,  500,2000,2000,  500, 200, 500 };
 
+//======================================================================Define messages on printer  =============
+// Message_startup is formatted providing major and minor version as parameters
+#define Message_startup "M117 OctoPlugout %i.%i"
 
+// Message for announcing that OctoPlugout is set sharp: it will poweroff after the print
+#define Message_announce_power_off "M117 Poweroff after PRINT"
+
+// message_temperature is formattted providing the temperature for shutting down you provided
+#define message_temperature "M117 Shutdown at T=%4.1f C"
+
+//message_poweroff is formatted providing the period to wait after shutdown before powering off
+#define message_poweroff "M117 Poweroff in %ds"

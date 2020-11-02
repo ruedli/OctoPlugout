@@ -2,7 +2,7 @@
  *  OctoPlugout                                                    */
 
 #define Version_major 1
-#define Version_minor 3
+#define Version_minor 4
  
  /*
  *  v1.0 - 27 oct 2020
@@ -15,7 +15,15 @@
  *    Improved state transitions
  *    Avoid pi checking when LED is on
  * 
- *  v1.3 - 
+ *  v1.3 - Equal to V1.2
+ *
+ *  v1.4 - 2 nov 2020
+ *    State interpretation also when LED is configured to be off
+ *    Messages on the LCD of your printer, when 
+ *    - plug is connected 
+ *    - Print is monitored
+ *    - Pi will be shutdwono
+ *    - Power will be switched off.
  *
  *
  *  An octoprint Arduino (ESP8266) sketch, to transform 
@@ -190,6 +198,29 @@ WiFiClient client;
 	OctoprintApi api(client, octoprint_host, octoprint_httpPort, octoprint_apikey);   // When using hostname 
 #endif
 
+
+//======================================================================Define messages on printer  =========
+// Messages are new as off 1.4 and I did not want to "force" users in
+// defining the messages in the OctoPllugout.config.h file.
+// So... If they are defined I keep them, otherwise I define them here
+
+#ifndef Message_startup
+#define Message_startup "M117 OctoPlougout %i.%i"
+#endif
+
+#ifndef message_poweroff
+#define Message_announce_power_off "M117 Poweroff after PRINT"
+#endif
+
+#ifndef message_poweroff
+#define message_temperature "M117 Shutdown at T=%4.1f C"
+#endif
+
+#ifndef message_poweroff
+#define message_poweroff "M117 Poweroff in %ds"
+#endif
+
+//====================================================================== State names =======================
 // DO NOT UPDATE the state names! 
 // Make sure your "blinking definition" in the config has 9 entries (0..8): one for each state.
 
@@ -204,6 +235,7 @@ enum state {
   delayed_powering_relay_off,
   going_down
 };
+
 
 
 state State;
@@ -234,7 +266,6 @@ bool ShortPress = false;
 //declare the functions defined and used furtheron
 bool OctoprintRunning   (bool Default = false);
 bool OctoprintNotRunning(bool Default = false);
-bool OctoPrintDown; // Indicates that there is no octoprint server, usiing a much longer delay to check that is is running.
 
 bool OctoprintPrinting   (bool Default = false);
 bool OctoprintNotPrinting(bool Default = false);
@@ -360,6 +391,7 @@ void setup () {
 			digitalWrite(PinLED, HIGH);  // The LED is off...
 		}
 	}
+	delay(2000);
 	#endif
 
 	// This is the initial state
@@ -417,6 +449,8 @@ void loop() {
 			if ( IntervalLED == 0) {  // This led should NEVER be on...
 				LED_on = false;
 				IntervalLED = 1000;
+				State_transition_checking_ok = true;	// Ensures the LED is OFF while checking the state, only necessary 
+														// for people who configure a state without LED on that should interpret Pi state.
 			}
 		} else {				//Set the time the LED should be OFF
 			IntervalLED=LED_OFF_TIME[State];
@@ -477,6 +511,7 @@ void loop() {
 			} else if (LongPress) {
 				State = going_down;
 			}
+			
 			break;		
 		case Waiting_for_print_activity_connected: // 3
 		case delayed_powering_relay_off : // 7			
@@ -508,7 +543,7 @@ void loop() {
 			if (OctoprintRunning()) State = Waiting_for_print_activity_connected;
 			break;		
 		case Waiting_for_print_activity_connected: // 3
-			if (OctoprintNotRunning(true)) State = Waiting_for_print_activity;
+			if (OctoprintNotRunning()) State = Waiting_for_print_activity;
 			else if (OctoprintPrinting()) State = ready_for_shutting_down;		
 			break;
 		case ready_for_shutting_down: //4
@@ -619,12 +654,31 @@ void loop() {
 		// Only do an action "ONCE"
 		LastState = State; 
 
-		//Set the next OctoprintInterval, SHORTEN the state change.
+		//Set the next OctoprintInterval, SHORTEN the state change and display messages.
+		char Message[40];
+		Message[0] = '\0';
 		switch(State) {
 		case Waiting_for_print_activity_connected: // 3
+			snprintf(Message,30,Message_startup,Version_major,Version_minor);
+			api.octoPrintPrinterCommand(Message);
+			//delay(1000);  // Wait at least 1000 ms, before putting another state
+			OctoprintInterval = 200; // Poll faster (only ONCE)
+			break;
 		case ready_for_shutting_down: // 4
+			snprintf(Message,30,Message_announce_power_off);
+			api.octoPrintPrinterCommand(Message);
+			OctoprintInterval = 200; // Poll faster (only ONCE)
+			break;
 		case ready_for_shutting_down_extruder_HOT: // 5
+			snprintf(Message,40,message_temperature,MaxExtruderTemperature);
+			api.octoPrintPrinterCommand(Message);
+			OctoprintInterval = 200; // Poll faster (only ONCE)
+			break;
 		case shutting_down_PI: // 6
+			snprintf(Message,30,message_poweroff,WaitPeriodForShutdown/1000);
+			api.octoPrintPrinterCommand(Message);
+			OctoprintInterval = 200; // Poll faster (only ONCE)
+			break;
 		case delayed_powering_relay_off : // 7		
 		case going_down: // 8		
 			OctoprintInterval = 200; // Poll faster (only ONCE)
@@ -714,13 +768,11 @@ bool OctoprintRunning(bool Default)
 	#endif
 	if (WiFi.status() == WL_CONNECTED) {
 		if (api.getPrinterStatistics()) {
-			OctoPrintDown = false;
 			return (true);
 		} else {
 			#ifdef debug_
 			Serial.println("Octoprint not running");
 			#endif
-			OctoPrintDown = true;
 			return (false);
 		}
 	} else {
