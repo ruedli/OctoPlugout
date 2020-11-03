@@ -2,7 +2,7 @@
  *  OctoPlugout                                                    */
 
 #define Version_major 2
-#define Version_minor 1
+#define Version_minor 2
  
  /*
  *  v1.0 - 27 oct 2020
@@ -579,14 +579,17 @@ void loop() {
 			}				
 			break;
 		case print_started : // 9			
-			if (OctoprintNotPrinting(true)) State = Waiting_for_print_activity_connected;
-			else if (((Now - Time_print_started) > MinJobTime) and OctoprintHot()) State = ready_for_shutting_down;	
+			if (OctoprintNotPrinting(true)) State = Waiting_for_print_activity_connected;							// 9->3
+			else if (((Now - Time_print_started) > MinJobTime) and OctoprintHot()) State = ready_for_shutting_down;	// 9->4
 			break;
 		case ready_for_shutting_down: //4
-			if (OctoprintNotPrinting()) State = ready_for_shutting_down_extruder_HOT;
+			if (OctoprintNotRunning()) State = delayed_powering_relay_off;											// 4->7
+			else if (OctoprintNotPrinting()) State = ready_for_shutting_down_extruder_HOT;  						// 4->5
 			break;				
 		case ready_for_shutting_down_extruder_HOT: // 5
-			if (OctoprintCool()) State = shutting_down_PI;
+			if (OctoprintNotRunning()) State = delayed_powering_relay_off;											// 5->7
+			else if (OctoprintPrinting()) State = ready_for_shutting_down;											// 5->4
+			else if (OctoprintCool()) State = shutting_down_PI;														// 5->6
 			else {
 				snprintf(Message,40,message_temperature,MaxExtruderTemperature);
 				api.octoPrintPrinterCommand(Message);
@@ -594,11 +597,11 @@ void loop() {
 			break;				
 		case shutting_down_PI : // 6
 			if (OctoprintRunning()) {
-				if (OctoprintShutdown()) {
+				if (OctoprintShutdown()) {																			// 6->7 (a)
 					State = delayed_powering_relay_off;
 					PowerOffRequested = Now;
 				}
-			} else {
+			} else {																								// 6->7 (b)
 				State = delayed_powering_relay_off;
 				PowerOffRequested = Now;
 			}

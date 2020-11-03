@@ -73,8 +73,8 @@
 //Set to 50.0: The raspberry is shutdown when the extruder temp is below this value:
 #define MaxExtruderTemperature 50.0
 
-//Set to 120000: Determines a printjob should be active at least 2 minutes, before triggering shutdown: shorter => NO SHUTDOWN
-#define MinJobTime 120000
+//Set to 300000: Determines a printjob should be active at least 5 minutes, before triggering shutdown: shorter => NO SHUTDOWN
+#define MinJobTime 300000
 
 //Set to 175: Determines a extruder should reach at least 175°C, before triggering shutdown: colder => NO SHUTDOWN
 #define MinExtruderTemperature 175.0
@@ -107,8 +107,8 @@
 // You define how many ms the LED is ON, and how many ms it is OFF. 
 //
 //            State ident:     0    1    2     3    4    5     6    7    8    9                        
-const int LED_ON_TIME[]  = {   0,   0,  50,   50,2000, 500, 2000,  50,  50,2000};
-const int LED_OFF_TIME[] = {   0,   0,2000,  500,2000,2000,  500, 200, 500,4000};
+const int LED_ON_TIME[]  = {   0,   0,  50, 3000, 400,  20,   20,  20, 500,1000};
+const int LED_OFF_TIME[] = {   0,   0,3000, 3000,3000,1000,  500, 150,3000,3000};
 
 //======================================================================Define messages on printer  =============
 // Message_startup is formatted providing major and minor version as parameters
