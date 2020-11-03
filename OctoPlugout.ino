@@ -1,5 +1,5 @@
-/*******************************************************************
- *  OctoPlugout                                                    */
+ /*  OctoPlugout      
+ */
 
 #define Version_major 2
 #define Version_minor 2
@@ -31,6 +31,8 @@
  *    temperature) to trigger a shutdown/power off
  *    Thnx to Tim for pointing this out!
  *
+ * v 2.2 - 3 nov 2003
+ *  - improved state transitions and timing
  *
  *  An octoprint Arduino (ESP8266) sketch, to transform 
  *  a SonOff plug into an "intelligent" socket that will safely remove power
@@ -174,9 +176,12 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 
-//Necessary for OTA
+//Necessary for OTA, in arduino IDE (not platformio)
+#ifndef platformio_build
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
+#endif
+
 #include <ArduinoOTA.h>
 
 // Set these defines to match your environment, copy initial file from OctoPlugout.config.h.RELEASE ========
@@ -856,8 +861,3 @@ bool OctoprintTemperatureTest(float ExtruderTemp, bool Default)
 		return Default;
 	}
 }
-
-
-
-
-

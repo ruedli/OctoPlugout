@@ -36,14 +36,10 @@ The software in the plug considers what to do if Wifi is lost, when your printer
 I used the Arduino IDE to compile everything. You need:
 
 - The ESP8266 library 
-- A library to communicate with the Octoprint API, called OctoprintAPI. You find it here: https://github.com/chunkysteveo/OctoPrintAPI 
+- A library to communicate with the Octoprint API, called OctoprintAPI. You can download it through the Arduino library mangere: search for "Octoprint: .
 - Prerequisits for OTA upgrades (over the air upgrade). Ensure you can compile to BasicOTA.ino sketch and see the listed IP address, which you need to update octoPlugout through the IP port. You see how to setup OTA here: https://randomnerdtutorials.com/esp8266-ota-updates-with-arduino-ide-over-the-air/
 
 With OctoprintAPI you also find other preprequisites for installation and making the sketch work for your environment, follow these recommendations.
-
-*hint*
-*Currently (1-11-2020) you could also install the OctoPrintAPI through the Arduino IDE, but.... This one is not the latest version. If you get an error "‘class OctoprintAPI’ has no member named ‘octoPrintCoreShutdown" your version is not up-to-date, install the library OctoPrintAPI directly from Stephen's github, as in the url above.*
-
 
 The "OctoPlugout" sketch has ALL its configuration parameters in one place: the file OctoPlugout.config.h. Copy it from OctoPlugout.config.h.RELEASED and adapt it to your Octoprint and WiFi. Adapt at least these parameters indicated in yellow, this depends on the IP address of Octoprint and Octiprints so-called API-key (accessible through the settings of Octoprint).
 
@@ -182,6 +178,10 @@ See the [LICENSE.md](LICENSE.md) file for details
 	 This new state prevents very short / aborted print jobs (configurable time and reached extruder 
      temperature) to trigger a shutdown/power off
      Thnx to Tim for pointing this out!
+	 
+** 2.2 Change configuation / timing parameters - 2 nov 202
+- Better state transitions
+- Recommended a "short job" (not triggering a shutdown) being (less than) 5 minutes. This include the "heating up time", as well as doing any bed level routine you have setup. Increase / decrease to your own taste. 	 
 
 ## Requests / Future To Do List
 - Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"
