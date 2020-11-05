@@ -192,9 +192,9 @@ See the [LICENSE.md](LICENSE.md) file for details
 Uptil 2.2, I used the Arduino IDE for compiling and deploying firmware for the plug. I modified the directory structure to also allow management of the firmware in your plug using platformIO. Arduino IDE can stil be used: simply open the Octoplugout.ino file with the Arduino IDE. Open the [Octoplugout] folder (the one that has paltformio.ini in it) in Visual Studio Code (with the platformio plugin installed) and enjoy compiling and deploying in this environment. It is now easy to support multiple platforms, in case you want to flash something else as a Sonoff.  
 
 ## Requests / Future To Do List
-- DONE Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"
-- DONE Show the "version" with a LED blinking pattern when stating up. 
-- DONE - thank you Bob Green, for helping me here! Who can make the programmable with platformio?
+- DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~
+- DONE ~~Show the "version" with a LED blinking pattern when stating up.~~
+- DONE - thank you Bob Green, for helping me here! ~~Who can make the programmable with platformio?~~
 - A plugin interface that allows Octoprint to set a state with an embedded GCODE, so that Octoprint will trigger a "shutdown".
 
 ## Meta
