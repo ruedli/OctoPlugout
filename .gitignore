@@ -1,0 +1,6 @@
+.pio
+.vscode
+/OctoPlugout/OctoPlugout.config.h
+/iot relay.txt
+/*.X
+/*.gcode
