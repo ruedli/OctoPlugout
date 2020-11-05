@@ -2,7 +2,7 @@
  */
 
 #define Version_major 2
-#define Version_minor 2
+#define Version_minor 3
  
  /*
  *  v1.0 - 27 oct 2020
@@ -176,11 +176,11 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 
-//Necessary for OTA, in arduino IDE (not platformio)
-#ifndef platformio_build
-#include <ESP8266mDNS.h>
-#include <WiFiUdp.h>
-#endif
+//Not needed! although the OTA example sketch contained them
+//#ifndef platformio_build
+//#include <ESP8266mDNS.h>
+//#include <WiFiUdp.h>
+//#endif
 
 #include <ArduinoOTA.h>
 
@@ -221,7 +221,7 @@ WiFiClient client;
 // So... If they are defined I keep them, otherwise I define them here
 
 #ifndef Message_startup
-#define Message_startup "M117 OctoPlougout %i.%i"
+#define Message_startup "M117 OctoPlugout %i.%i"
 #endif
 
 #ifndef Message_announce_print
@@ -240,6 +240,8 @@ WiFiClient client;
 #define message_poweroff "M117 Poweroff in %ds"
 #endif
 
+//====================================================================== Type & Functions ==================
+// OctoPlugout types and functions
 //====================================================================== State names =======================
 // DO NOT UPDATE the state names! 
 // Make sure your "blinking definition" in the config has 9 entries (0..8): one for each state.
@@ -257,6 +259,21 @@ enum state {
   print_started
 };
 
+//declare the functions defined and used furtheron
+bool OctoprintRunning   (bool Default = false);
+bool OctoprintNotRunning(bool Default = false);
+
+bool OctoprintPrinting   (bool Default = false);
+bool OctoprintNotPrinting(bool Default = false);
+
+bool OctoprintTemperatureTest(float Temperature, bool Default = false);
+bool OctoprintCool(bool Default = false);
+bool OctoprintHot (bool Default = false);
+
+bool WifiAvailable    (bool Default = false);
+bool WifiNotAvailable (bool Default = false);
+
+bool OctoprintShutdown(void);
 
 
 state State;
@@ -285,24 +302,7 @@ bool ButtonPressed = false;
 bool LongPress = false;
 bool ShortPress = false;
 
-//declare the functions defined and used furtheron
-bool OctoprintRunning   (bool Default = false);
-bool OctoprintNotRunning(bool Default = false);
-
-bool OctoprintPrinting   (bool Default = false);
-bool OctoprintNotPrinting(bool Default = false);
-
-bool OctoprintTemperatureTest(float Temperature, bool Default = false);
-bool OctoprintCool(bool Default = false);
-bool OctoprintHot (bool Default = false);
-
-bool WifiAvailable    (bool Default = false);
-bool WifiNotAvailable (bool Default = false);
-
-bool OctoprintShutdown(void);
-
 // The various states:
-
 
 void setup () {
   // initialize digital pins for Sonoff
@@ -334,8 +334,10 @@ void setup () {
   }
   //Set the hostname
   ArduinoOTA.setHostname(hostname);
+  #ifdef OTApass
   ArduinoOTA.setPassword(OTApass);
-  
+  #endif
+
   ArduinoOTA.onStart([]() {
     String type;
     if (ArduinoOTA.getCommand() == U_FLASH) {
@@ -561,8 +563,10 @@ void loop() {
 			} else if (LongPress) {
 				State = Relay_off;
 			}
-			break;		
-		}
+			break;
+		default:				// Do nothing
+			break;
+		};
 
 		
 	// Now interpret every 15 or 5 (configurable) seconds whether the states need to change because of Octoprint statistics
@@ -622,6 +626,8 @@ void loop() {
 				PowerOffRequested = Now;
 			}
 			break;			
+		default:				// Do nothing
+			break;
 		}
 	}
 	// Now interpret states that need to change independently of button presses, wifi or Octoprint statistics
@@ -634,6 +640,8 @@ void loop() {
 			if (OctoprintRunning(false)) {State = Switched_ON;
 			} else State = Relay_off;  // If not... poweroff the printer and Pi!
 		}
+		break;
+	default:				// Do nothing
 		break;
 	}		
 		
@@ -653,6 +661,8 @@ void loop() {
 	case shutting_down_PI: // 6
 		OctoprintInterval = OctoprintInterval_running; // Poll faster (every 5 seconds)
 		break;		
+	default:				// Do nothing
+		break;
 	}		
 
 	//Take action for State changes
@@ -728,6 +738,8 @@ void loop() {
 		case going_down: // 8		
 			OctoprintInterval = 200; // Poll faster (only ONCE)
 			break;		
+		default:				// Do nothing
+			break;
 		}
 	}
 

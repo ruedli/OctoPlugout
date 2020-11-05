@@ -29,9 +29,16 @@
 //Set these to your own taste.
 
 // This is the hostname of your plug
-#define hostname "OctoPlugout"
-//Set the password, for Over The Air (WiFi) updates here.
+// If the define is not set, no OTA password is required.
+// Note that your platformio OTA upload (or arduino IDE OTA upgrade), must specify (or type in when prompted
+// the same password the NEXT time you upload an image.
+//
+//Set the password, for future Over The Air (WiFi) updates here.
 #define OTApass "1234"
+
+// A hostname helps identifying the plug, not all operation systems will see it configured in this manner, 
+// it might need the "bonjour" service installed.
+#define hostname "OctoPlugout"
 
 // Set this debug_ define to write information to the serial port, will NOT be visible over Wifi, only to the serial port
 //#define debug_
