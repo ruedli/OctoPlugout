@@ -125,6 +125,9 @@ And when Octoprint has been shutdown, and the printer + Octoprint will be powere
 
 ![poweroff illustration](https://github.com/ruedli/OctoPlugout/blob/master/images/poweroff.jpg) 
 
+## Arduino IDE is nice, but how about platformIO?
+Yes, this was a "wish" on my todo-list as well. I quite like the platformIO way of organizing embedded platform firmware! As of release 2.3, platformIO is supported. I did not abandon the Arduino IDE way of preparing and deploying firmware, but you can now do this as well using platformIO. If you have not yet installed platformIO: Go through the setup of Visual studio Code and install the platformIO plugin in VCcode. Now you can open the project folder as an platformIO project. Inside you will still find OctoPlugout.ino in a OctoPlugout folder, so that can still be used by the Arduino IDE. If you are coming from version 2.2, simply copy your OctoPlugout.config.h file in that folder and all will be fine. You can remove the old OctoPlugout.ino file (the 2.2 version), should the git update not have removed this file. Thanks to Bob Green for paving the road here!
+
 ## If you like OctoPlugout...
 
 Consider buying me a coffee
@@ -141,6 +144,7 @@ Let me know, and I will see what I can do to make you like it.
 * Stephen Ludgate [chunkysteveo](https://github.com/chunkysteveo) for his OctoPrintAPI work.
 * Andreas Spiess https://www.youtube.com/channel/UCu7_D0o48KbfhpEohoP7YSQ for triggering discussion and the work necessary to complete the task.
 * Sander Verweij For his state machine representation which you find here: https://state-machine-cat.js.org/
+* Bob Green for helping getting platformio behave the way I wanted
 
 ## Authors
 
@@ -169,7 +173,7 @@ See the [LICENSE.md](LICENSE.md) file for details
 -    Messages on the LCD of your printer, when 
      - plug is connected 
      - Print is monitored
-     - Pi will be shutdwono
+     - Pi will be shutdown
      - Power will be switched off.
 
 ** 2.1 Messages - 2 nov 2020
@@ -183,10 +187,14 @@ See the [LICENSE.md](LICENSE.md) file for details
 - Better state transitions
 - Recommended a "short job" (not triggering a shutdown) being (less than) 5 minutes. This include the "heating up time", as well as doing any bed level routine you have setup. Increase / decrease to your own taste. 	 
 
+** 2.3 Support building and uploading OTA through platformIO
+
+Uptil 2.2, I used the Arduino IDE for compiling and deploying firmware for the plug. I modified the directory structure to also allow management of the firmware in your plug using platformIO. Arduino IDE can stil be used: simply open the Octoplugout.ino file with the Arduino IDE. Open the [Octoplugout] folder (the one that has paltformio.ini in it) in Visual Studio Code (with the platformio plugin installed) and enjoy compiling and deploying in this environment. It is now easy to support multiple platforms, in case you want to flash something else as a Sonoff.  
+
 ## Requests / Future To Do List
-- Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"
+- DONE Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"
 - DONE Show the "version" with a LED blinking pattern when stating up. 
-- Who can make the programmable with platformio?
+- DONE - thank you Bob Green, for helping me here! Who can make the programmable with platformio?
 - A plugin interface that allows Octoprint to set a state with an embedded GCODE, so that Octoprint will trigger a "shutdown".
 
 ## Meta
