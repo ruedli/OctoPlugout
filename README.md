@@ -5,23 +5,25 @@ Contrary to most contributions to Octoprint, this software is not a Plugin, but 
 ## I called it.... "OctoPlugout"
 Because it is not a plugin, but still communicates like plugins -outside of the framework-, I called it a "plugout". So... OctoPlugout was born.
 
-In essense this "Arduino" software "lives" in the ESP8266 inside the wall plug. Here is where you plugin the powercord of your Printer.
+In essense this "Arduino" software "lives" in the ESP8266 inside the wall plug. Here is where you also plugin the powercord of your Printer/Raspberry Pi.
 <img align="left" style="padding-right:30px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/SONOF%20reflashed%20working.jpg">
 
 ## What does it do?
 It uses this Sonoff plug, that you flash with the sketch provided here. Now the plug itself communicates wirelessly with the Octoprint server running on the Raspberry Pi.
 
-**After a print** it will:
+**After a print** OctoPlugout running in the plug will:
 - Wait for the extruder to cool down
 - Shutdown the Pi
 - Wait for the Pi to finish shutting down
 - Power off, both **printer** and **Pi**
 
+In essence  this move the shutdown power-off functionality outside of the Octoprint server running on the Pi. This OctoPlugout software can therefore continue to control things, even after the Pi server itself is shutdown. Plugins running in the server cannot do this.
+
 ## What is in it for you?
 
-OctoPlugout delivers a "one touch" safe shutdown button for both your Pi and printer! No additional wiring to the Pi, just the printer's powercord!
+OctoPlugout delivers a "one touch" **safe shutdown button** for both your Pi and printer! No additional wiring is needed into the Pi, just the printer's powercord!
 
-The beauty of the solution, is that unlike Tasmota or Sonoff, there is no separate software or framework needed. Neither locally nor in the cloud. It is sufficient to directly communicate (wirelessly) between the plug and octoprint. Only the powercord is plugged in, so that the plug can control the power to your printer.
+The beauty of the solution, is that unlike Tasmota or Sonoff, there is no separate software or framework needed to make this plug "work". Neither locally nor in the cloud. It is sufficient to directly communicate (wirelessly) between the plug and octoprint. Only the powercord is plugged in, so that the plug can control the power to your printer.
 
 ## What does it need?
 
@@ -36,7 +38,7 @@ The software in the plug considers what to do if Wifi is lost, when your printer
 I used the Arduino IDE to compile everything. You need:
 
 - The ESP8266 library 
-- A library to communicate with the Octoprint API, called OctoprintAPI. You can download it through the Arduino library mangere: search for "Octoprint: .
+- A library to communicate with the Octoprint API, called OctoprintAPI. You can download it through the Arduino library manager: search for "Octoprint: .
 - Prerequisits for OTA upgrades (over the air upgrade). Ensure you can compile to BasicOTA.ino sketch and see the listed IP address, which you need to update octoPlugout through the IP port. You see how to setup OTA here: https://randomnerdtutorials.com/esp8266-ota-updates-with-arduino-ide-over-the-air/
 
 With OctoprintAPI you also find other preprequisites for installation and making the sketch work for your environment, follow these recommendations.
@@ -47,10 +49,10 @@ The "OctoPlugout" sketch has ALL its configuration parameters in one place: the 
 
 ![The critical configuration](https://github.com/ruedli/OctoPlugout/blob/master/images/config.jpg)  
 
-Also the OctoprintAPI describes all these parameters in further details. The "green" ones should stay like they are. Consider the other parameters: you can adapt it to other Sonoff plugs (in case it uses different pins), as well as configure the 8 "blinking" patterns for the states the plug is in, as well as some timing parameters. The parameter file describes them.
+Also the OctoprintAPI describes all these parameters for connecting to your printer through WiFi in further details. The "green" ones should stay like they are. Consider the other parameters: you can adapt it to other Sonoff plugs (in case it uses different pins), as well as configure the 8 "blinking" patterns for the states the plug is in, as well as some timing parameters. The parameter file describes them.
 
-If you do not change the OTA password in the config file, when you "flash" over the air, the password is "1234".
-Note that this password only is in effect the NEXT time you flash OTA. If you forgotten the passowrd and lost the config file, you need to flash using the serial port, then no passowrd is required and you can (re)set the OTA password.
+If you do not change the OTA password in the config file, when you want to "flash" over the air, the password is "1234".
+Note that if yuo change the password, it only is in effect the NEXT time you flash OTA. If you forgotten the password and lost the config file (to read back what you flashed), you need to flash using the serial port. For a flash over the serial port, no password is required and you can (re)set the OTA password for your next flash(es).
 
 ## States
 
@@ -61,14 +63,15 @@ The states look like this:
 In this state diagram the action that trigger state changes are:
 - SP: a short press of the button
 - LP: a long press on the button
-- WiFi-: Wifi goes down
-- Pi-: Octoprint goes down
+- WiFi-: Wifi is down
+- WiFi+: Wifi is up
+- Pi-: Octoprint is down
 - Pi+: Octoprint is up, and the plug is connected.
 - print+: A print is running
 - print-: No print is running
-- temp-: The extruder is cooled enough to power off the printer
+- temp-: The extruder is cool enough to power off the printer
 - temp+: The extruder is heated up enough to trigger shutdown procedure after print
-- timeout: a sufficiently long time between "shutdown" of the Pi and poweringoff the Pi.
+- timeout: a sufficiently long time between "shutdown" of the Pi and powering off the Pi.
 
 ## Flashing a Sonoff
 
@@ -81,36 +84,39 @@ Please "save" your original Sonoff software first before you flash OctoPlugout o
 
 # Using it...
 
-In practice it is easier to operate how it looks in written form.
+In practice it is easier to operate compared to how it looks in written form.
 
-In short: The red LED lights whenever the relay is on (so your printer/raspberry is powered). The green LED indicates interaction with Octoprint.
+In short: The red LED lights shows whenever the relay is on (so your printer/raspberry is powered). The green LED indicates *interaction with Octoprint*.
 
 No green LED: The plug stays on "forever" until you press something (see below).
 
 *Slooooooow blinking green* LED. It tries to find your printer.. When is is found: *Normal blinking green* LED.
 
+This is the "normal" state after startup.
+
 ### Now there are three possibilities:
-- *Short press*: you go into "disconnected power on mode again", your printer will stasy on forever...
-- *Long press*: As soon as no print is running AND the extruder is cool, it will shutdown the Pi. The LED will blink very rapidly... It will look whether Octoprint "comes back" (LEDs not blinking) If it does (very rarely!!!), it goes in "switched on forever mode". If not (the normal case) after 30 seconds, the power is removed.
-- A print is *started... finishes.. the extruder cools down*: then the shutdown procedure is also triggered.
+- *Short press*: you go into "disconnected power on mode again", your printer will stay on forever...
+- *Long press*: switch off: As soon as no print is running AND the extruder is cool, it will shutdown the Pi. The LED will blink very rapidly... and after 30 seconds the power is removed. If in these 30 seconds Octoprint "comes back", it goes into the initial configured mode. 
+- A print is *started... finishes.. the extruder cools down*. This also triggers the shutdown / power off procedure.
 
 ### When in "switched on forever" (Only red LED, NO green)
+It will stay on forever, no activities of the printer will influence this. Only you can influence this with the button on the plug as follows:
 - A *short press* will go into "connected to octoprint mode".
-- A *long press* will power off.
+- A *long press* will initiate a safe shutdown / power off.
 
 ### When powered off:
 - A *short press* will "power on".
 
 During most states, you can always with a *short press* force "switch on mode forever", or a *long press* "power off immidiately". In the modes when it is connected where Octoprint is alive, it will shutdown octoprint first.
 
-When your WiFi goes away, it will switch to "power on" and try to (re) connect mode. If it does, it will not shutdown Octoprint just like that when the extruder is cooled down.
+When your WiFi goes away, it will switch to "power on" and try to (re)connect mode. If it does, it will not shutdown Octoprint! Instead it will wait for a (log) press or wait for a print to be initiated and finished.
 
-As you can see, there is quite some "sense" in the states and how the button operates. The state diagram is a good place to better understand what goes on in the plug, and what a button press (long or short) triggers. The LEDS show you in which state it is. Some states are "quickly passed", so the LED does not have time to reflect it in the blinking pattern. You will understand when you see it happening.
+As you can see, there is quite some "sense" in the states and how the button operates. The state diagram is a good place to better understand what goes on in the plug, and what a button press (long or short) triggers. The LEDS show you in which state it is. Some states are "quickly passed", so the LED does not have time to reflect it in the blinking pattern.You will understand when you see it happening. You also see messages on the printers LCD, coming from the plug.
 
 You can configure "how the plug comes alive" when powering on the plug. Initially I configure "dumb mode - forever on", but in hind sight I liked "connected to octoprint" better. That is how the configuration template ships.
 
 If you don't like the blinking patterns per state, you can reconfigure them faster / slower / more flashy... whatever you like.
-If you do not like the timing: change it. But remember: interogating the API of octoprint takes some resources, so do not overdo it! By nature this plug only needs a "slow" update rate of information.
+If you do not like the timing: change it. But remember: interrogating the API of octoprint takes some resources, so do not overdo it! By nature this plug only needs a "slow" update rate of information.
 
 For technical reasons: while it checks for "Octoprint" to be alive (and it is not) the LEDS do not blink for 3 seconds. So the states that assume Octoprint not to be there, reduce their update rate. 
 
@@ -149,7 +155,7 @@ Let me know, and I will see what I can do to make you like it.
 ## Authors
 
 * **Stephen Ludgate** - *Inspiration* - For his example sketch HelloWorldSerial that proved my concept and was my "start" for the sketch..
-* **Ruud Rademaker**  - *Initial work* - 
+* **Ruud Rademaker**  - *Initial work / all releases* - 
 
 ## License
 
@@ -189,7 +195,7 @@ See the [LICENSE.md](LICENSE.md) file for details
 
 ** 2.3 Support building and uploading OTA through platformIO
 
-Uptil 2.2, I used the Arduino IDE for compiling and deploying firmware for the plug. I modified the directory structure to also allow management of the firmware in your plug using platformIO. Arduino IDE can stil be used: simply open the Octoplugout.ino file with the Arduino IDE. Open the [Octoplugout] folder (the one that has paltformio.ini in it) in Visual Studio Code (with the platformio plugin installed) and enjoy compiling and deploying in this environment. It is now easy to support multiple platforms, in case you want to flash something else as a Sonoff.  
+Uptil 2.2, I used the Arduino IDE for compiling and deploying firmware for the plug. I modified the directory structure to also allow management of the firmware in your plug using platformIO. Arduino IDE can stil be used: simply open the Octoplugout.ino file with the Arduino IDE. Open the [Octoplugout] folder (the one that has paltformio.ini in it) in Visual Studio Code (with the platformio plugin installed) and enjoy compiling and deploying in this environment. It is now easy to support multiple platforms, in case you want to flash something different from a Sonoff.  
 
 ## Requests / Future To Do List
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~
