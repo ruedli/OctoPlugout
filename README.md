@@ -90,7 +90,7 @@ In short: The red LED lights shows whenever the relay is on (so your printer/ras
 
 No green LED: The plug stays on "forever" until you press something (see below).
 
-*Slooooooow blinking green* LED. It tries to find your printer.. When is is found: *Normal blinking green* LED.
+*Slooooooow blinking green* LED. It tries to find your printer.. When it is found: *Normal blinking green* LED.
 
 This is the "normal" state after startup.
 
@@ -109,16 +109,16 @@ It will stay on forever, no activities of the printer will influence this. Only 
 
 During most states, you can always with a *short press* force "switch on mode forever", or a *long press* "power off immidiately". In the modes when it is connected where Octoprint is alive, it will shutdown octoprint first.
 
-When your WiFi goes away, it will switch to "power on" and try to (re)connect mode. If it does, it will not shutdown Octoprint! Instead it will wait for a (log) press or wait for a print to be initiated and finished.
+When your WiFi goes away, it will switch to "power on" and try to (re)connect mode. If it does, it will not shutdown Octoprint! Instead it will wait for a (long) press or wait for a print to be initiated and finished.
 
-As you can see, there is quite some "sense" in the states and how the button operates. The state diagram is a good place to better understand what goes on in the plug, and what a button press (long or short) triggers. The LEDS show you in which state it is. Some states are "quickly passed", so the LED does not have time to reflect it in the blinking pattern.You will understand when you see it happening. You also see messages on the printers LCD, coming from the plug.
+As you can see, there is some "sense" in the states and how the button operates. The state diagram is a good place to better understand what goes on in the plug, and what a button press (long or short) triggers. The LEDS show you in which state it is. Some states are "quickly passed", so the LED does not have time to reflect it in the blinking pattern.You will understand when you see it happening. You also see messages on the printers LCD, coming from the plug.
 
-You can configure "how the plug comes alive" when powering on the plug. Initially I configure "dumb mode - forever on", but in hind sight I liked "connected to octoprint" better. That is how the configuration template ships.
+You can configure "how the plug comes alive" when powering on the plug. Initially I configure "dumb mode - forever on", but after some experience, I liked "connected to octoprint" better, because I always found myself switching to that mode. This initial mode (connected to Octoprint) is how the configuration template ships. Reconfigure if you have a different preference.
 
 If you don't like the blinking patterns per state, you can reconfigure them faster / slower / more flashy... whatever you like.
-If you do not like the timing: change it. But remember: interrogating the API of octoprint takes some resources, so do not overdo it! By nature this plug only needs a "slow" update rate of information.
+If you do not like the timing for checking things: change it. But remember: interrogating the API of octoprint takes some resources, so do not overdo it! By nature this plug only needs a "slow" update rate of information.
 
-For technical reasons: while it checks for "Octoprint" to be alive (and it is not) the LEDS do not blink for 3 seconds. So the states that assume Octoprint not to be there, reduce their update rate. 
+For technical reasons: while it checks for "Octoprint" to be alive (and it is not) the LEDS do not blink for over 3 seconds. So the states that assume Octoprint not to be there, reduce their update rate. 
 
 ## I do not see anything of this in Octoprint
 True, allthough the LEDS blink and reflect the state the plug is in, it is difficult to see what is going on. This is why I updated OctoPlugout so that it shows messages on the LCD of your printer. Your printer should be able to understand the standard Marlin M117 GCODE.
@@ -132,7 +132,7 @@ And when Octoprint has been shutdown, and the printer + Octoprint will be powere
 ![poweroff illustration](https://github.com/ruedli/OctoPlugout/blob/master/images/poweroff.jpg) 
 
 ## Arduino IDE is nice, but how about platformIO?
-Yes, this was a "wish" on my todo-list as well. I quite like the platformIO way of organizing embedded platform firmware! As of release 2.3, platformIO is supported. I did not abandon the Arduino IDE way of preparing and deploying firmware, but you can now do this as well using platformIO. If you have not yet installed platformIO: Go through the setup of Visual studio Code and install the platformIO plugin in VCcode. Now you can open the project folder as an platformIO project. Inside you will still find OctoPlugout.ino in a OctoPlugout folder, so that can still be used by the Arduino IDE. If you are coming from version 2.2, simply copy your OctoPlugout.config.h file in that folder and all will be fine. You can remove the old OctoPlugout.ino file (the 2.2 version), should the git update not have removed this file. Thanks to Bob Green for paving the road here!
+Yes, compiling and deplyong using platformIO was a "wish" on my todo-list as well. I quite like the platformIO way of organizing embedded platform firmware! As of release 2.3, platformIO is supported. I did not abandon the Arduino IDE way of preparing and deploying firmware, but you can now do this as well using platformIO. If you have not yet installed platformIO: Go through the setup of Visual studio Code and install the platformIO plugin in VCcode. Now you can open the project folder as an platformIO project. Inside you will still find OctoPlugout.ino in a OctoPlugout folder, so that can be used by the Arduino IDE straight away. If you are coming from version 2.2, simply copy your OctoPlugout.config.h file in that folder and all will be fine. You can remove the old OctoPlugout.ino file (the 2.2 version, in the root), should the git update not have removed this file. Thanks to Bob Green for paving the road here!
 
 ## If you like OctoPlugout...
 
