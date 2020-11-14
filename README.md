@@ -151,6 +151,7 @@ Let me know, and I will see what I can do to make you like it.
 * Andreas Spiess https://www.youtube.com/channel/UCu7_D0o48KbfhpEohoP7YSQ for triggering discussion and the work necessary to complete the task.
 * Sander Verweij For his state machine representation which you find here: https://state-machine-cat.js.org/
 * Bob Green for helping getting platformio behave the way I wanted
+* Jim Neill (@jneilliii) for sparring on the approach for integration with a (new) octoprint plugin
 
 ## Authors
 
