@@ -2,7 +2,7 @@
  */
 
 #define Version_major 2
-#define Version_minor 3
+#define Version_minor 4
  
  /*
  *  v1.0 - 27 oct 2020
@@ -797,6 +797,31 @@ bool OctoprintPrinting(bool Default)
 				Serial.println("Octoprint is PAUSED");
 				#endif
 				return true;
+			} else if (api.printerStats.printerStatepausing == 1) {
+				#ifdef debug_
+				Serial.println("Octoprint is PAUSED");
+				#endif
+				return true;			
+			} else if (api.printerStats.printerStateerror == 1) {
+				#ifdef debug_
+				Serial.println("Octoprint is PAUSED");
+				#endif
+				return true;
+			} else if (api.printerStats.printerStateclosedOrError == 1) {
+				#ifdef debug_
+				Serial.println("Octoprint is PAUSED");
+				#endif
+				return true;			
+			} else if (api.printerStats.printerStatefinishing == 1) {
+				#ifdef debug_
+				Serial.println("Octoprint is PAUSED");
+				#endif
+				return true;
+			} else if (api.printerStats.printerStateerror == 1) {
+				#ifdef debug_
+				Serial.println("Octoprint is PAUSED");
+				#endif
+				return true;				
 			} else { 	
 				return false;
 			}
