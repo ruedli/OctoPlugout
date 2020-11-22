@@ -799,27 +799,27 @@ bool OctoprintPrinting(bool Default)
 				return true;
 			} else if (api.printerStats.printerStatepausing == 1) {
 				#ifdef debug_
-				Serial.println("Octoprint is PAUSED");
+				Serial.println("Octoprint is PAUSING");
 				#endif
 				return true;			
 			} else if (api.printerStats.printerStateerror == 1) {
 				#ifdef debug_
-				Serial.println("Octoprint is PAUSED");
+				Serial.println("Octoprint is Error");
 				#endif
 				return true;
 			} else if (api.printerStats.printerStateclosedOrError == 1) {
 				#ifdef debug_
-				Serial.println("Octoprint is PAUSED");
+				Serial.println("Octoprint is closedOrError");
 				#endif
 				return true;			
 			} else if (api.printerStats.printerStatefinishing == 1) {
 				#ifdef debug_
-				Serial.println("Octoprint is PAUSED");
+				Serial.println("Octoprint is finishing");
 				#endif
 				return true;
-			} else if (api.printerStats.printerStateerror == 1) {
+			} else if (api.printerStats.printerStateresuming == 1) {
 				#ifdef debug_
-				Serial.println("Octoprint is PAUSED");
+				Serial.println("Octoprint is resuming");
 				#endif
 				return true;				
 			} else { 	
