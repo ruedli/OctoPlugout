@@ -196,7 +196,15 @@ See the [LICENSE.md](LICENSE.md) file for details
 
 ** 2.3 Support building and uploading OTA through platformIO
 
-Uptil 2.2, I used the Arduino IDE for compiling and deploying firmware for the plug. I modified the directory structure to also allow management of the firmware in your plug using platformIO. Arduino IDE can stil be used: simply open the Octoplugout.ino file with the Arduino IDE. Open the [Octoplugout] folder (the one that has paltformio.ini in it) in Visual Studio Code (with the platformio plugin installed) and enjoy compiling and deploying in this environment. It is now easy to support multiple platforms, in case you want to flash something different from a Sonoff.  
+Uptil 2.2, I used the Arduino IDE for compiling and deploying firmware for the plug. I modified the directory structure to also allow management of the firmware in your plug using platformIO. Arduino IDE can stil be used: simply open the Octoplugout.ino file with the Arduino IDE. Open the [Octoplugout] folder (the one that has paltformio.ini in it) in Visual Studio Code (with the platformio plugin installed) and enjoy compiling and deploying in this environment. It is now easy to support multiple platforms, in case you want to flash something different from a Sonoff. 
+
+** 2.4 State printing extended
+
+Also statues liking "resuming" "pausing" (in addition to the existing "paused") "Error" are now considered as "job in progress". This prevents unexpected sutdowns,e.g. when Octoprint is busy when uploading files.
+
+** 2.5 State printing more resilient
+
+Some states that indicate a print in progress, will NOT respond to a Pi-DOWN message. This is to prevent premature power-off, when the Pi is too busy to respond.
 
 ## Requests / Future To Do List
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~

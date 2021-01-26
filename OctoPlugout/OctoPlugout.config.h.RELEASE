@@ -45,7 +45,14 @@
 
 //=========================================================================================================
 //These depend on your type of Sonoff, see e.g. guides on flashing "Tasmota" for information
-//define the used pins for your  Sonoff, below are the ones that apply to a S26
+//define the used pins for your  Sonoff, below are the ones that apply to a S20/S26
+//
+// From what I can see, they also apply for 
+//   Generic Sonoff,
+//   Sonoff 4CH
+//   
+//
+// 
 #define PinButton 0
 #define PinRelay 12
 #define PinLED 13

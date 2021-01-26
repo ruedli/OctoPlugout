@@ -2,7 +2,7 @@
  */
 
 #define Version_major 2
-#define Version_minor 4
+#define Version_minor 5
  
  /*
  *  v1.0 - 27 oct 2020
@@ -25,14 +25,27 @@
  *    - Pi will be shutdwono
  *    - Power will be switched off.
  *
- * v 2.1 - 2 nov 2020
+ * v2.1 - 2 nov 2020
  *  - Added an additional state "print started"
  *    This state prevents very short / aborted print jobs (configurable time and reached extruder 
  *    temperature) to trigger a shutdown/power off
  *    Thnx to Tim for pointing this out!
  *
- * v 2.2 - 3 nov 2003
+ * v2.2 - 3 nov 2020
  *  - improved state transitions and timing
+ *
+ * v2.3 - 4 nov 2020
+ * - Support building and uploading OTA through platformIO
+ *
+ * v2.4 - 10 nov 2020
+ * State printing extended
+ * - Also statues liking "resuming" "pausing" (in addition to the existing "paused") "Error" are now considered as "job in progress". 
+ *   This prevents unexpected sutdowns,e.g. when Octoprint is busy when uploading files.
+ *
+ * v2.5 - 26 dec 2020
+ * State printing more resilient
+ * - some states that indicate a print in progress, will NOT respond to a Pi-DOWN message. 
+ *   This is to prevent premature power-off, when the Pi is too busy to respond.
  *
  *  An octoprint Arduino (ESP8266) sketch, to transform 
  *  a SonOff plug into an "intelligent" socket that will safely remove power
@@ -116,11 +129,11 @@
   "9: print started" => "3: waiting for printactivity (connected)"   [color="blue"] : print-;
 
   "4: ready for shutting down" => "5: ready for shutting down HOT" [color="blue"] :  print-;
-  "4: ready for shutting down" => "7: delayed powering relay off" [color="blue"] :  Pi-;
+//"4: ready for shutting down" => "7: delayed powering relay off" [color="blue"] :  Pi-;
 
   "5: ready for shutting down HOT" => "4: ready for shutting down" : print+;
   "5: ready for shutting down HOT" => "6: shut down PI" [color="blue"] :  Temp-;
-  "5: ready for shutting down HOT" => "7: delayed powering relay off" [color="blue"] :  Pi-;
+//"5: ready for shutting down HOT" => "7: delayed powering relay off" [color="blue"] :  Pi-;
 
   "6: shut down PI" => "7: delayed powering relay off" [color="blue"] :  Pi-; 
 
@@ -592,12 +605,12 @@ void loop() {
 			else if (((Now - Time_print_started) > MinJobTime) and OctoprintHot()) State = ready_for_shutting_down;	// 9->4
 			break;
 		case ready_for_shutting_down: //4
-			if (OctoprintNotRunning()) State = delayed_powering_relay_off;											// 4->7
-			else if (OctoprintNotPrinting()) State = ready_for_shutting_down_extruder_HOT;  						// 4->5
+//			if (OctoprintNotRunning()) State = delayed_powering_relay_off;											// 4->7
+			if (OctoprintNotPrinting()) State = ready_for_shutting_down_extruder_HOT;  							// 4->5
 			break;				
 		case ready_for_shutting_down_extruder_HOT: // 5
-			if (OctoprintNotRunning()) State = delayed_powering_relay_off;											// 5->7
-			else if (OctoprintPrinting()) State = ready_for_shutting_down;											// 5->4
+//			if (OctoprintNotRunning()) State = delayed_powering_relay_off;											// 5->7
+			if (OctoprintPrinting()) State = ready_for_shutting_down;											// 5->4
 			else if (OctoprintCool()) State = shutting_down_PI;														// 5->6
 			else {
 				snprintf(Message,40,message_temperature,MaxExtruderTemperature);
