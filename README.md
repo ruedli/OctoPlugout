@@ -206,6 +206,11 @@ Also statues liking "resuming" "pausing" (in addition to the existing "paused") 
 
 Some states that indicate a print in progress, will NOT respond to a Pi-DOWN message. This is to prevent premature power-off, when the Pi is too busy to respond.
 
+** 2.6 2021-02-14 @ 08:53 PM: Add message for printer
+
+Message on printer indicating that the plug is on (but no longer monitoring). 
+(just because it looks so nice)
+
 ## Requests / Future To Do List
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~
 - DONE ~~Show the "version" with a LED blinking pattern when stating up.~~
