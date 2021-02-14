@@ -2,7 +2,7 @@
  */
 
 #define Version_major 2
-#define Version_minor 5
+#define Version_minor 6
  
  /*
  *  v1.0 - 27 oct 2020
@@ -46,6 +46,10 @@
  * State printing more resilient
  * - some states that indicate a print in progress, will NOT respond to a Pi-DOWN message. 
  *   This is to prevent premature power-off, when the Pi is too busy to respond.
+ *
+ * v2.6 - 14 feb 2021
+ * Show message on display when going "offline"
+ * - This makes it easier to see that you are not any longer using Octoplug to monitor a print
  *
  *  An octoprint Arduino (ESP8266) sketch, to transform 
  *  a SonOff plug into an "intelligent" socket that will safely remove power
@@ -241,16 +245,20 @@ WiFiClient client;
 #define Message_announce_print "M117 PRINT started"
 #endif
 
-#ifndef message_poweroff
+#ifndef Message_announce_power_off
 #define Message_announce_power_off "M117 Poweroff after PRINT"
 #endif
 
-#ifndef message_poweroff
+#ifndef message_temperature
 #define message_temperature "M117 Shutdown at T=%4.1f C"
 #endif
 
 #ifndef message_poweroff
 #define message_poweroff "M117 Poweroff in %ds"
+#endif
+
+#ifndef message_NoMonitor
+#define message_NoMonitor "M117 Plug NOT monitoring"
 #endif
 
 //====================================================================== Type & Functions ==================
@@ -727,6 +735,10 @@ void loop() {
 
 		//Set the next OctoprintInterval, SHORTEN the state change and display messages.
 		switch(State) {
+		case Switched_ON: // 1
+			snprintf(Message,30,message_NoMonitor);
+			api.octoPrintPrinterCommand(Message);
+			break;
 		case Waiting_for_print_activity_connected: // 3
 			snprintf(Message,30,Message_startup,Version_major,Version_minor);
 			api.octoPrintPrinterCommand(Message);

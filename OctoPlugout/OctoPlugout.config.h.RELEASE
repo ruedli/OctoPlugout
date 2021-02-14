@@ -139,3 +139,6 @@ const int LED_OFF_TIME[] = {   0,   0,3000, 3000,3000,1000,  500, 150,3000,3000}
 
 //message_poweroff is formatted providing the period to wait after shutdown before powering off
 #define message_poweroff "M117 Poweroff in %ds"
+
+// Message indicating that the plug is on, but no longer monitoring
+#define message_NoMonitor "M117 Plug NOT monitoring"
