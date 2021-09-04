@@ -1,6 +1,6 @@
 // COPY this file and name it "OctoPlugout.config.h" This ensures I never overwrite you config file when updating.
 // Version information
-#define OctoPlugout_config_version 2
+#define OctoPlugout_config_version 3
 
 //=========================================================================================================
 // For sure set THESE defines for your printer / octoprint installation
@@ -25,6 +25,46 @@
 
 // This is the hostname of your octoprint server , in the example 'octopi' is configured, Only applicable when UseIP is NOT defined!
 #define octoprintHost "octopi"
+
+//=======================================================================================================
+// This section is NEW since version 3.x
+//
+// An MQTT server can be defined, as well as topics to use. This allows remote controling the plug from your 
+// telephone or a home automation.
+//
+// You can see the state of OctoPlugout in topic configured under <topic_OctoPlugout>
+// Switch the plug by publishing a string to topic <topic_OnOffSwitch>
+// 	 ON: switches the plug on, switching shutting down the Pi / it off after a printjob.
+//	 PERMON: switches the plug on, not looking into OctoPrint for when to switch it off.
+//	 OFF: switches the plug off/shuts down the Pi, provided no printjob is running / the extruder is cooled down.
+//
+//  Other than that, it will publish print and printjob data to 5 topics listed below. 
+//  This functionality is ONLY active once you set the mqtt_server #define.
+//  The mqtt server can be local or remote. 
+
+// MQTT server to use
+//#define mqtt_server "192.168.1.110"	// The IP address or name of your MQTT server
+#define mqtt_server "mqtt.server.com"	// The IP address or name of your MQTT server
+#define mqtt_port 1883					// The port for accessing your MQTT server
+#define mqtt_user "mqttNAME"			// The user for accessinq your mqtt server"		
+#define mqtt_pass "mqttPASS"			// The password for accessing your MQTT server
+
+// Topics used=============================================================================================
+// For Octoplugout
+#define topic_OctoPlugout 			"test/prusa/octoplugout"	// (READ) Status messages and debug info (when enabled)		
+#define topic_OnOffSwitch			"test/prusa/switch"			// (WRITE) PowerSwitch for remote controlling of the plug
+// From octoprint: printer
+#define mqtt_UpdateInterval 		60000    					// Interval (ms) for updating status messages
+#define topic_PrintState 			"test/prusa/printstate"		// (READ) Status of the printer
+#define topic_ExtruderTemp			"test/prusa/extrudertemp"	// (READ) extruder temperature
+#define topic_BedTemp				"test/prusa/bedtemp"		// (READ) bed temperature
+// From octoprint: job
+#define topic_JobState 				"test/prusa/jobstate"		// (READ) Status of the job	
+#define topic_JobProgress			"test/prusa/jobprogress"	// (READ) Job progress (%)
+//=========================================================================================================
+
+
+
 //=========================================================================================================
 //Set these to your own taste.
 
@@ -126,10 +166,10 @@ const int LED_OFF_TIME[] = {   0,   0,3000, 3000,3000,1000,  500, 150,3000,3000}
 
 //======================================================================Define messages on printer  =============
 // Message_startup is formatted providing major and minor version as parameters
-#define Message_startup "M117 OctoPlugout %i.%i"
+#define Message_startup "M117 OP: OctoPlugout %i.%i"
 
-// Message for announcing that OctoPlugout is set sharp: it will poweroff after the print
-#define Message_announce_print "M117 PRINT started"
+// Message for announcing that OctoPlugout has detected a started printjob
+#define Message_announce_print "M117 OP: PRINT started"
 
 // Message for announcing that OctoPlugout is set sharp: it will poweroff after the print
 #define Message_announce_power_off "M117 Poweroff after PRINT"
@@ -138,7 +178,7 @@ const int LED_OFF_TIME[] = {   0,   0,3000, 3000,3000,1000,  500, 150,3000,3000}
 #define message_temperature "M117 Shutdown at T=%4.1f C"
 
 //message_poweroff is formatted providing the period to wait after shutdown before powering off
-#define message_poweroff "M117 Poweroff in %ds"
+#define message_poweroff "M117 OP: Poweroff in %ds"
 
 // Message indicating that the plug is on, but no longer monitoring
-#define message_NoMonitor "M117 Plug NOT monitoring"
+#define message_NoMonitor "M117 OP: NOT monitoring"

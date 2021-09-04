@@ -54,6 +54,18 @@ Also the OctoprintAPI describes all these parameters for connecting to your prin
 If you do not change the OTA password in the config file, when you want to "flash" over the air, the password is "1234".
 Note that if yuo change the password, it only is in effect the NEXT time you flash OTA. If you forgotten the password and lost the config file (to read back what you flashed), you need to flash using the serial port. For a flash over the serial port, no password is required and you can (re)set the OTA password for your next flash(es).
 
+## MQTT **NEW** in version 3.x!
+
+New since version 3.0 is the possibility to operate the plug from your phone and thus remotely switch your printer on, or (safely) off.
+This requires access to an MQTT server. The plug will publish topics to this server and look at a configurable topic whether to power the printer, or swithc it off, or ensure it stays on also after your printjob finishes. No need to touch the button on your Sonoff anymore!
+
+See the updated released configuration file (it is now version 3) to learn which #defines to add. They are all in one section for "mqtt".
+If you do not set the #define mqtt_server, everything works without mqtt, but then you can not operate it remotely. It is not different from the verion 2.x in this way.
+
+You can use one of the many mqtt clients on your phone. I tried 6 different ones, on Android phone and iPad. They all worked.
+
+For the required mqtt server, I installed Mosquitto on my NAS. You can also install Mosquitto on a Raspberry Pi, but installing it on your Octoprint server is only recommended if you secure things adequately, like through a VPN. I did not try free public domain mqtt servers, but there is not reason this should not work. Typically you integrate the topics with your home automation or Node Red, but I do not have that installed, so I operate it straight from a standard mqtt client.
+
 ## States
 
 The states look like this:
@@ -206,10 +218,17 @@ Also statues liking "resuming" "pausing" (in addition to the existing "paused") 
 
 Some states that indicate a print in progress, will NOT respond to a Pi-DOWN message. This is to prevent premature power-off, when the Pi is too busy to respond.
 
-** 2.6 2021-02-14 @ 08:53 PM: Add message for printer
+** 2.6 2021-02-14: Add message for printer
 
 Message on printer indicating that the plug is on (but no longer monitoring). 
 (just because it looks so nice)
+
+** v3.0 2021-08-31: MQTT awareness
+- Switch the printer on using MQTT, also printer and printjob information can be published
+
+** v3.1 2021-09-04
+- Ensure the plug also works without MQTT 
+- Document README
 
 ## Requests / Future To Do List
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~
