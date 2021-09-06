@@ -230,6 +230,10 @@ Message on printer indicating that the plug is on (but no longer monitoring).
 - Ensure the plug also works without MQTT 
 - Document README
 
+** v3.2 2021-09-07
+- Added optional defines to invert working of relay and/or led.
+- Simplified logic for switch, it is reset to '-' after interpretation
+
 ## Requests / Future To Do List
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~
 - DONE ~~Show the "version" with a LED blinking pattern when stating up.~~

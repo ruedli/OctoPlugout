@@ -97,6 +97,10 @@
 #define PinRelay 12
 #define PinLED 13
 
+// In case LEDS or RELAYS are on instead of off and vice versa use these defines to fix:
+//#define INVERT_RELAY
+//#define INVERT_LED
+
 /* Initial state, use:
   Relay_off                   the plug starts "unpowered" when plugged in.
   Switched_ON                 the plug starts powered, but is NOT listening to Octoprint.

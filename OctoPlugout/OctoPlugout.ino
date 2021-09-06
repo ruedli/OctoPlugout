@@ -2,7 +2,7 @@
  */
 
 #define Version_major 3
-#define Version_minor 1
+#define Version_minor 2
  
  /*
  *  v1.0 - 27 oct 2020
@@ -59,6 +59,12 @@
  * - Ensure the plug also works without MQTT 
  * - Document README
  *
+ * v3.2 - 7 sep 2021
+ * - Added optional defines to invert working of relay and/or led.
+ * - Simplified logic for switch, it is reset to '-' after interpretation
+ 
+
+
  *  An octoprint Arduino (ESP8266) sketch, to transform 
  *  a SonOff plug into an "intelligent" socket that will safely remove power
  *  from your printer AND the Raspberry Pi which is running octoprint.
@@ -307,7 +313,8 @@ enum state {
   shutting_down_PI,
   delayed_powering_relay_off,
   going_down,
-  print_started
+  print_started,
+  nothing
 };
 
 //declare the functions defined and used furtheron
@@ -332,8 +339,7 @@ state LastState;
 bool  State_transition_checking_ok;
 
 #ifdef mqtt_server
-state StateMQTT;			// Callback will set this, loop() will use it.
-bool  ConsiderMQTT = false;
+state StateMQTT = nothing;			// Callback will set this, loop() will use it.
 #endif
 
 // Timer stuff
@@ -369,6 +375,7 @@ String OctoplugoutState(state OctoPO_State) {
 	case delayed_powering_relay_off:			return("delayed_powering_relay_off");
 	case going_down:							return("going_down");
 	case print_started:							return("print_started");
+	case nothing:								return("nothing");
 	};
 	
 	return "";
@@ -380,7 +387,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 	Serial.print("Message arrived [");
 	Serial.print(topic);
 	Serial.print("] <");
-	for (int i = 0; i < length; i++) {
+	for (unsigned int i = 0; i < length; i++) {
 	Serial.print((char)payload[i]);
 	}
 	Serial.println(">");
@@ -388,17 +395,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
 	// Set State following the message received.
 	if (strcmp(topic, topic_OnOffSwitch) == 0) {
 		payload[length] = '\0'; // NULL terminate the array
-		ConsiderMQTT = true;
-		if ((strcmp("ON", (char *)payload) == 0) or (strcmp("AFTERJOB", (char *)payload) == 0))
+		if ((strcmp("ON", (char *)payload) == 0) or (strcmp("AFTERJOB", (char *)payload) == 0)) {
 			StateMQTT = Waiting_for_print_activity;
-		else if (strcmp("PERMON", (char *)payload) == 0)
-			StateMQTT = Switched_ON; 
-		else if (strcmp("OFF", (char *)payload) == 0)
+		} else if (strcmp("PERMON", (char *)payload) == 0) {
+			StateMQTT = Switched_ON;
+		} else if (strcmp("OFF", (char *)payload) == 0) {
 			StateMQTT = ready_for_shutting_down;
-		else if (strcmp("FORCEOFF", (char *)payload) == 0)
-			StateMQTT = Relay_off; 
-		else
-			ConsiderMQTT = false;
+		} else if (strcmp("FORCEOFF", (char *)payload) == 0) {
+			StateMQTT = Relay_off;
+		}			
 	}
 }
 #endif
@@ -672,7 +677,11 @@ void loop() {
 			IntervalLED=LED_OFF_TIME[State];
 			State_transition_checking_ok = true;	// Ensures the LED is OFF while checking the state.
 		}
+		#ifdef INVERT_LED
+		digitalWrite(PinLED, LED_on ? HIGH: LOW);	// Actually switch the LED on or Off, depending on LED_on.
+		#else
 		digitalWrite(PinLED, LED_on ? LOW: HIGH);	// Actually switch the LED on or Off, depending on LED_on.
+		#endif
 	}
 	
 	// Evaluate button: debouncing after it is pressed
@@ -859,20 +868,39 @@ void loop() {
 	}
 
 	#ifdef mqtt_server
-	if (ConsiderMQTT) {
-		ConsiderMQTT=false;
+	if (StateMQTT != nothing) {
+		MQTTclient.publish(topic_OnOffSwitch, "-"); // reset, so it is not taken into account a second time for whatever reason
 		State=StateMQTT;
+		StateMQTT=nothing;
 	}
 	#endif
 	
 	//Take action for State changes
 	if (State != LastState ) {
+		
+		#ifdef debug_
+
+		Serial.print("State changed from ");
+		Serial.print(OctoplugoutState(LastState));
+		Serial.print(" to ");
+		Serial.println(OctoplugoutState(State));
+		Serial.print(" LED on/off: ");
+		Serial.print(LED_ON_TIME[State]);
+		Serial.print("/");
+		Serial.println(LED_OFF_TIME[State]);
+
+	#endif
+		
 		// Only do an action "ONCE"
 		LastState = State;
 
 		//Set the relay
+		#ifdef INVERT_RELAY
+		digitalWrite(PinRelay, (State == Relay_off) ? HIGH : LOW);
+		#else
 		digitalWrite(PinRelay, (State == Relay_off) ? LOW : HIGH);
-
+		#endif
+		
 		#ifdef mqtt_server
 		// Publish new state
 		MQTTclient.publish(topic_OctoPlugout,OctoplugoutState(State).c_str());
@@ -898,7 +926,7 @@ void loop() {
 				Serial.println(api.printerStats.printerStateready);
 				Serial.println("------------------------");
 				Serial.println();
-				Serial.println("------Termperatures-----");
+				Serial.println("------Temperatures-----");
 				Serial.print("Printer Temp - Tool0 (°C):  ");
 				Serial.println(api.printerStats.printerTool0TempActual);
 				Serial.print("Printer State - Bed (°C):  ");
@@ -906,14 +934,6 @@ void loop() {
 				Serial.println("------------------------");
 			}
 		}
-		Serial.print("State changed from ");
-		Serial.print(LastState);
-		Serial.print(" to ");
-		Serial.print(State);
-		Serial.print(" LED on/off: ");
-		Serial.print(LED_ON_TIME[State]);
-		Serial.print("/");
-		Serial.println(LED_OFF_TIME[State]);
 		#endif
 
 		//Set the next OctoprintInterval, SHORTEN the state change and display messages.
@@ -959,6 +979,7 @@ void loop() {
 	case shutting_down_PI:
 	case delayed_powering_relay_off:
 	case going_down:
+	case nothing:
 		break;
 	case Waiting_for_print_activity:
 	case Waiting_for_print_activity_connected:
