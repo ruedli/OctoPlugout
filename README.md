@@ -57,14 +57,14 @@ Note that if yuo change the password, it only is in effect the NEXT time you fla
 ## MQTT **NEW** in version 3.x!
 
 New since version 3.0 is the possibility to operate the plug from your phone and thus remotely switch your printer on, or (safely) off.
-This requires access to an MQTT server. The plug will publish topics to this server and look at a configurable topic whether to power the printer, or swithc it off, or ensure it stays on also after your printjob finishes. No need to touch the button on your Sonoff anymore!
+This requires access to a MQTT server. The plug will publish topics to this server and look at a configurable topic whether to power the printer, switch it off, or ensure it stays on also after your printjob finishes. No need to touch the button on your Sonoff anymore!
 
 See the updated released configuration file (it is now version 3) to learn which #defines to add. They are all in one section for "mqtt".
 If you do not set the #define mqtt_server, everything works without mqtt, but then you can not operate it remotely. It is not different from the verion 2.x in this way.
 
 You can use one of the many mqtt clients on your phone. I tried 6 different ones, on Android phone and iPad. They all worked.
 
-For the required mqtt server, I installed Mosquitto on my NAS. You can also install Mosquitto on a Raspberry Pi, but installing it on your Octoprint server is only recommended if you secure things adequately, like through a VPN. I did not try free public domain mqtt servers, but there is not reason this should not work. Typically you integrate the topics with your home automation or Node Red, but I do not have that installed, so I operate it straight from a standard mqtt client.
+For the required mqtt server, I installed Mosquitto on my NAS. You can also install Mosquitto on a Raspberry Pi, but installing it on your Octoprint server is not recommended, as it needs to be on, even when toy shutdown the Pi. Secure your mqtt server prefereably through through a VPN. I did not try free public domain mqtt servers, but there is not reason this should not work. You can probably integrate the topics with your home automation or Node Red, but I did not try that and operated it straight from a standard mqtt client.
 
 ## States
 
@@ -238,7 +238,9 @@ Message on printer indicating that the plug is on (but no longer monitoring).
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~
 - DONE ~~Show the "version" with a LED blinking pattern when stating up.~~
 - DONE - thank you Bob Green, for helping me here! ~~Who can make the programmable with platformio?~~
-- A plugin interface that allows Octoprint to set a state with an embedded GCODE, so that Octoprint will trigger a "shutdown".
+- DONE ~~A plugin interface that allows Octoprint to set a state with an embedded GCODE, so that Octoprint will trigger a "shutdown".
+
+Now that Octoplugout supports mqtt, you can install a pluginn in octoprint and send commands from the printer to the plug from gcode.
 
 ## Meta
 
