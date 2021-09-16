@@ -119,7 +119,7 @@ It will stay on forever, no activities of the printer will influence this. Only 
 ### When powered off:
 - A *short press* will "power on".
 
-During most states, you can always with a *short press* force "switch on mode forever", or a *long press* "power off immidiately". In the modes when it is connected where Octoprint is alive, it will shutdown octoprint first.
+During most states, you can always with a *short press* force "switch on mode forever", or a *long press* "power off immediately". In the modes when it is connected where Octoprint is alive, it will shutdown octoprint first.
 
 When your WiFi goes away, it will switch to "power on" and try to (re)connect mode. If it does, it will not shutdown Octoprint! Instead it will wait for a (long) press or wait for a print to be initiated and finished.
 
@@ -238,9 +238,8 @@ Message on printer indicating that the plug is on (but no longer monitoring).
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~
 - DONE ~~Show the "version" with a LED blinking pattern when stating up.~~
 - DONE - thank you Bob Green, for helping me here! ~~Who can make the programmable with platformio?~~
-- DONE ~~A plugin interface that allows Octoprint to set a state with an embedded GCODE, so that Octoprint will trigger a "shutdown".
-
-Now that Octoplugout supports mqtt, you can install a pluginn in octoprint and send commands from the printer to the plug from gcode.
+- DONE ~~A plugin interface that allows Octoprint to set a state with an embedded GCODE, so that Octoprint will trigger a "shutdown".~~
+Now that Octoplugout supports mqtt, you can install a plugin in octoprint and send commands from the printer to the plug from gcode.
 
 ## Meta
 
