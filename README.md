@@ -57,15 +57,15 @@ The "OctoPlugout" sketch has ALL its configuration parameters in one place: the 
 
 ![The critical configuration](https://github.com/ruedli/OctoPlugout/blob/master/images/config.jpg) 
 
-**New in version 4.0** is the "configuration portal". If you press the button of you sonoff more then 5 seconds, the LED will start "fast blinking" and when you release, the wifi credential will be erased and you need to re configure them. Here you can also configure all other parameters.
-
-- Connect your phone of PC to a wifi called "SetupOctoPlugout"
+**New in version 4.0** is the "configuration portal". If you press the button of your sonoff more then 5 seconds, the LED will start "fast blinking" and when you release it, the wifi credentials will be erased and you need to re-configure them. Here you can also configure all other parameters. Proceed as follws:
+- Press and hold the button at least 5 seconds (or more) until the LED starts blinking.
+- Connect your phone of PC to a wifi network called "SetupOctoPlugout" (do this within one minute)
 - Next browse to 192.168.4.1
-Here you see this page, which allows you to select an available WiFi and enter the access password.
+Here you see the below page, which allows you to select an available WiFi and enter an access password. Remeber: the existing one will alsway be erased, so you need to reconfigure it after you pressed the button > 5 seconds!
 
 <img src="https://user-images.githubusercontent.com/5008440/133644736-1f268113-ec5d-4009-ade6-1c7d3070684f.png" alt="drawing" width="200"/>
 
-If you did not set the define "def_mqtt_server", no mqtt setting will be requested.
+If you _did not set the define_ "def_mqtt_server", no mqtt setting will be requested.
 If you set the mqtt_server to "none" or leave it empty, all mqtt_functions are suppressed.
 
 The octoprint address MUST be an IP-adress, not a name! The API string can be obtained from octoprint. Since typically people do not plugin their printer "remotely", I assumed this address to be a local IP address. Note however that with mqtt you can switch your printer on and off from anywhere!
@@ -93,8 +93,6 @@ The picture below shows topics send to and from the plug, you can see the plug r
 
 If you install mqtt plugins in octoprint, you can also operate your printer through mqtt or see what it is doing. In this way I was able to have a pulldown in octoprint to safely power off.
 Not "on", because the webpage is not available until the Pi is running.
-
-
 
 ## States
 
