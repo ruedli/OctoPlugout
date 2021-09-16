@@ -241,6 +241,8 @@ Message on printer indicating that the plug is on (but no longer monitoring).
 - DONE ~~A plugin interface that allows Octoprint to set a state with an embedded GCODE, so that Octoprint will trigger a "shutdown".~~
 Now that Octoplugout supports mqtt, you can install a plugin in octoprint and send commands from the printer to the plug from gcode.
 
+
+
 ## Meta
 
 Ruud Rademaker:
@@ -256,3 +258,22 @@ git - https://github.com/ruedli
 3. Commit your changes (`git commit -am 'Add some fooBar'`)
 4. Push to the branch (`git push origin feature/fooBar`)
 5. Create a new Pull Request
+
+Flash: error
+![image](https://user-images.githubusercontent.com/5008440/133645235-57577728-dbd1-46ab-ae46-07ee9dd9c450.png)
+
+Show config portal
+![image](https://user-images.githubusercontent.com/5008440/133644736-1f268113-ec5d-4009-ade6-1c7d3070684f.png)
+
+128k in arduiono IDE
+![image](https://user-images.githubusercontent.com/5008440/133644822-09075a68-5376-48f5-bc7f-7804f5d5afce.png)
+
+
+128k in platformio
+![image](https://user-images.githubusercontent.com/5008440/133645412-4c7a0311-944a-4a62-ac41-f3f0df7bcdce.png)
+
+MQTT stuff
+![image](https://user-images.githubusercontent.com/5008440/133646228-97b307a5-f8b8-407b-b9d3-e8cd3846401e.png)
+
+
+
