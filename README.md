@@ -1,12 +1,18 @@
 # A Plugout for Octoprint
-<img align="left" style="padding-right:10px;" src="https://octoprint.org/assets/img/logo.png">
+
+<img align="left" src="https://octoprint.org/assets/img/logo.png" width=200>
+
 Contrary to most contributions to Octoprint, this software is not a Plugin, but does talk to Octoprint through its API. It works outside of the (python) framework of [OctoPrint](https://octoprint.org/). Octoprint needs no further introduction: the well known the 3D printer web server designed and maintained by the brilliant Gina Häußge, aka @foosel.
 
 ## I called it.... "OctoPlugout"
 Because it is not a plugin, but still communicates like plugins -outside of the framework-, I called it a "plugout". So... OctoPlugout was born.
-
+<p> 
+<p>
+<p>
+<p>
 In essense this "Arduino" software "lives" in the ESP8266 inside the wall plug. Here is where you also plugin the powercord of your Printer/Raspberry Pi.
-<img align="left" style="padding-right:30px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/SONOF%20reflashed%20working.jpg">
+
+<img align="right" style="padding-left:60px;" src="https://github.com/ruedli/OctoPlugout/blob/master/images/SONOF%20reflashed%20working.jpg">
 
 ## What does it do?
 It uses this Sonoff plug, that you flash with the sketch provided here. Now the plug itself communicates wirelessly with the Octoprint server running on the Raspberry Pi.
@@ -47,8 +53,6 @@ With OctoprintAPI you also find other preprequisites for installation and making
 
 The "OctoPlugout" sketch has ALL its configuration parameters in one place: the file OctoPlugout.config.h. Copy it from OctoPlugout.config.h.RELEASED and adapt it to your Octoprint and WiFi. Adapt at least these parameters indicated in yellow, this depends on the IP address of Octoprint and Octiprints so-called API-key (accessible through the settings of Octoprint).
 
-
-
 ### OctoPlugout.config.h
 
 ![The critical configuration](https://github.com/ruedli/OctoPlugout/blob/master/images/config.jpg) 
@@ -57,8 +61,9 @@ The "OctoPlugout" sketch has ALL its configuration parameters in one place: the 
 
 - Connect your phone of PC to a wifi called "SetupOctoPlugout"
 - Next browse to 192.168.4.1
-Now you see this page, which allows you to select an available WiFi and enter the access password.
-<img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133644736-1f268113-ec5d-4009-ade6-1c7d3070684f.png">
+Here you see this page, which allows you to select an available WiFi and enter the access password.
+
+<img src="https://user-images.githubusercontent.com/5008440/133644736-1f268113-ec5d-4009-ade6-1c7d3070684f.png" alt="drawing" width="200"/>
 
 If you did not set the define "def_mqtt_server", no mqtt setting will be requested.
 If you set the mqtt_server to "none" or leave it empty, all mqtt_functions are suppressed.
@@ -84,8 +89,7 @@ For the required mqtt server, I installed Mosquitto on my NAS. You can also inst
 
 The picture below shows topics send to and from the plug, you can see the plug reacting to ON OFF PERMON and FORCEOFF messages and go through its states.
 
-MQTT stuff
-<img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133646228-97b307a5-f8b8-407b-b9d3-e8cd3846401e.png">
+<img src="https://user-images.githubusercontent.com/5008440/133646228-97b307a5-f8b8-407b-b9d3-e8cd3846401e.png" alt="drawing" width="300"/>
 
 If you install mqtt plugins in octoprint, you can also operate your printer through mqtt or see what it is doing. In this way I was able to have a pulldown in octoprint to safely power off.
 Not "on", because the webpage is not available until the Pi is running.
@@ -121,10 +125,13 @@ Here you see the first flashing using its serial port. Later flashes can be done
 Please "save" your original Sonoff software first before you flash OctoPlugout over it. Instructions are here: https://hobbytronics.com.pk/sonoff-original-firmware-backup-restore/#Step-by-Step-Procedure
 
 As progress was made, the size increased and now you have to be carefull how you load the firmware (over the air or serial) into the plug. You need to serve 128k for filespace. On the Arduino IDE you select of from the tools menu, like this:
-<img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133644822-09075a68-5376-48f5-bc7f-7804f5d5afce.png">
+	
+<img src="https://user-images.githubusercontent.com/5008440/133644822-09075a68-5376-48f5-bc7f-7804f5d5afce.png" alt="drawing" width="300"/>
 
 In platformio, you add a script for uploading, by adding a line like this:
-<img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133645412-4c7a0311-944a-4a62-ac41-f3f0df7bcdce.png">
+	
+<img src="https://user-images.githubusercontent.com/5008440/133645412-4c7a0311-944a-4a62-ac41-f3f0df7bcdce.png" alt="drawing" width="300"/>
+
 This script can be downloaded from platformio, but is also provided.
 
 # Using it...
@@ -169,20 +176,18 @@ For technical reasons: while it checks for "Octoprint" to be alive (and it is no
 True, allthough the LEDS blink and reflect the state the plug is in, it is difficult to see what is going on. This is why I updated OctoPlugout so that it shows messages on the LCD of your printer. Your printer should be able to understand the standard Marlin M117 GCODE.
 
 Here are some examples: when the print is finished and will shutdown Octoprint when it is cooled down.
-
-![shutdown illustration](https://github.com/ruedli/OctoPlugout/blob/master/images/shutdown.jpg) 
+	
+<img src="https://github.com/ruedli/OctoPlugout/blob/master/images/shutdown.jpg" alt="drawing" width="250"/>
 
 And when Octoprint has been shutdown, and the printer + Octoprint will be powered off.
 
-![poweroff illustration](https://github.com/ruedli/OctoPlugout/blob/master/images/poweroff.jpg) 
+<img src="https://github.com/ruedli/OctoPlugout/blob/master/images/poweroff.jpg" alt="drawing" width="250"/>
 
 ## Arduino IDE is nice, but how about platformIO?
 Yes, compiling and deploying using platformIO was a "wish" on my todo-list as well. I quite like the platformIO way of organizing embedded platform firmware! As of release 2.3, platformIO is supported. I did not abandon the Arduino IDE way of preparing and deploying firmware, but you can now do this as well using platformIO. If you have not yet installed platformIO: Go through the setup of Visual studio Code and install the platformIO plugin in VCcode. Now you can open the project folder as an platformIO project. Inside you will still find OctoPlugout.ino in a OctoPlugout folder, so that can be used by the Arduino IDE straight away. If you are coming from version 2.2, simply copy your OctoPlugout.config.h file in that folder and all will be fine. You can remove the old OctoPlugout.ino file (the 2.2 version, in the root), should the git update not have removed this file. Thanks to Bob Green for paving the road here!
 
 If you find your OTA failing, like the picture below, or the config portal unstable, you might have forgotten to reserve 128k for flash memory.
-
-<img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133645235-57577728-dbd1-46ab-ae46-07ee9dd9c450.png">
-
+<img src="https://user-images.githubusercontent.com/5008440/133645235-57577728-dbd1-46ab-ae46-07ee9dd9c450.png" alt="drawing" width="400"/>
 
 ## If you like OctoPlugout...
 
