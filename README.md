@@ -40,31 +40,57 @@ I used the Arduino IDE to compile everything. You need:
 - The ESP8266 library 
 - A library to communicate with the Octoprint API, called OctoprintAPI. You can download it through the Arduino library manager: search for "Octoprint: .
 - Prerequisits for OTA upgrades (over the air upgrade). Ensure you can compile to BasicOTA.ino sketch and see the listed IP address, which you need to update octoPlugout through the IP port. You see how to setup OTA here: https://randomnerdtutorials.com/esp8266-ota-updates-with-arduino-ide-over-the-air/
+- A library for the configuration portal (WiFiManager)
+- A library for mqtt access (Pubsubclient)
 
 With OctoprintAPI you also find other preprequisites for installation and making the sketch work for your environment, follow these recommendations.
 
 The "OctoPlugout" sketch has ALL its configuration parameters in one place: the file OctoPlugout.config.h. Copy it from OctoPlugout.config.h.RELEASED and adapt it to your Octoprint and WiFi. Adapt at least these parameters indicated in yellow, this depends on the IP address of Octoprint and Octiprints so-called API-key (accessible through the settings of Octoprint).
 
+
+
 ### OctoPlugout.config.h
 
-![The critical configuration](https://github.com/ruedli/OctoPlugout/blob/master/images/config.jpg)  
+![The critical configuration](https://github.com/ruedli/OctoPlugout/blob/master/images/config.jpg) 
 
-Also the OctoprintAPI describes all these parameters for connecting to your printer through WiFi in further details. The "green" ones should stay like they are. Consider the other parameters: you can adapt it to other Sonoff plugs (in case it uses different pins), as well as configure the 8 "blinking" patterns for the states the plug is in, as well as some timing parameters. The parameter file describes them.
+**New in version 4.0** is the "configuration portal". If you press the button of you sonoff more then 5 seconds, the LED will start "fast blinking" and when you release, the wifi credential will be erased and you need to re configure them. Here you can also configure all other parameters.
+
+- Connect your phone of PC to a wifi called "SetupOctoPlugout"
+- Next browse to 192.168.4.1
+Now you see this page, which allows you to select an available WiFi and enter the access password.
+<img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133644736-1f268113-ec5d-4009-ade6-1c7d3070684f.png">
+
+If you did not set the define "def_mqtt_server", no mqtt setting will be requested.
+If you set the mqtt_server to "none" or leave it empty, all mqtt_functions are suppressed.
+
+The octoprint address MUST be an IP-adress, not a name! The API string can be obtained from octoprint. Since typically people do not plugin their printer "remotely", I assumed this address to be a local IP address. Note however that with mqtt you can switch your printer on and off from anywhere!
+
+The OctoprintAPI describes all the API parameters for connecting to your printer through WiFi in further details. The "green" ones should stay like they are. Consider the other parameters: you can adapt it to other Sonoff plugs (in case it uses different pins), as well as configure the 8 "blinking" patterns for the states the plug is in, as well as some timing parameters. The parameter file describes them.
 
 If you do not change the OTA password in the config file, when you want to "flash" over the air, the password is "1234".
-Note that if yuo change the password, it only is in effect the NEXT time you flash OTA. If you forgotten the password and lost the config file (to read back what you flashed), you need to flash using the serial port. For a flash over the serial port, no password is required and you can (re)set the OTA password for your next flash(es).
+Note that if you change the password, it only is in effect the NEXT time you flash OTA. If you forgotten the password and lost the config file (to read back what you flashed), you need to flash using the serial port. For a flash over the serial port, no password is required and you can (re)set the OTA password for your next flash(es).
 
 ## MQTT **NEW** in version 3.x!
 
 New since version 3.0 is the possibility to operate the plug from your phone and thus remotely switch your printer on, or (safely) off.
 This requires access to a MQTT server. The plug will publish topics to this server and look at a configurable topic whether to power the printer, switch it off, or ensure it stays on also after your printjob finishes. No need to touch the button on your Sonoff anymore!
 
-See the updated released configuration file (it is now version 3) to learn which #defines to add. They are all in one section for "mqtt".
+See the updated released configuration file (it is now version 3) to learn which #defines to add. They are all in one section for "mqtt", or you can as off version 4 configure them from the web portal.
 If you do not set the #define mqtt_server, everything works without mqtt, but then you can not operate it remotely. It is not different from the verion 2.x in this way.
 
 You can use one of the many mqtt clients on your phone. I tried 6 different ones, on Android phone and iPad. They all worked.
 
-For the required mqtt server, I installed Mosquitto on my NAS. You can also install Mosquitto on a Raspberry Pi, but installing it on your Octoprint server is not recommended, as it needs to be on, even when toy shutdown the Pi. Secure your mqtt server prefereably through through a VPN. I did not try free public domain mqtt servers, but there is not reason this should not work. You can probably integrate the topics with your home automation or Node Red, but I did not try that and operated it straight from a standard mqtt client.
+For the required mqtt server, I installed Mosquitto on my NAS. You can also install Mosquitto on a Raspberry Pi, but installing it on your Octoprint server is not recommended, as it needs to be on, even to shutdown the Pi. Secure your mqtt server prefereably through through a VPN. I did not try free public domain mqtt servers, but there is not reason this should not work. You can probably integrate the topics with your home automation or Node Red, but I did not try that and operated it straight from a standard mqtt client. Topics are configurable from the portal or the defines in the settings file.
+
+The picture below shows topics send to and from the plug, you can see the plug reacting to ON OFF PERMON and FORCEOFF messages and go through its states.
+
+MQTT stuff
+<img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133646228-97b307a5-f8b8-407b-b9d3-e8cd3846401e.png">
+
+If you install mqtt plugins in octoprint, you can also operate your printer through mqtt or see what it is doing. In this way I was able to have a pulldown in octoprint to safely power off.
+Not "on", because the webpage is not available until the Pi is running.
+
+
 
 ## States
 
@@ -92,7 +118,14 @@ I 3D-printed a convenient plug to flash the S26. You can find it here: https://w
 Here you see the first flashing using its serial port. Later flashes can be done "over the air".
 ![Flashing a sonoff S26](https://github.com/ruedli/OctoPlugout/blob/master/images/flash%20a%20S26.jpg)
 
-Please "save" your original Sonoff software first before you flash OctoPlugout over it. Instructions are here: https://hobbytronics.com.pk/sonoff-original-firmware-backup-restore/#Step-by-Step-Procedure 
+Please "save" your original Sonoff software first before you flash OctoPlugout over it. Instructions are here: https://hobbytronics.com.pk/sonoff-original-firmware-backup-restore/#Step-by-Step-Procedure
+
+As progress was made, the size increased and now you have to be carefull how you load the firmware (over the air or serial) into the plug. You need to serve 128k for filespace. On the Arduino IDE you select of from the tools menu, like this:
+<img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133644822-09075a68-5376-48f5-bc7f-7804f5d5afce.png">
+
+In platformio, you add a script for uploading, by adding a line like this:
+<img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133645412-4c7a0311-944a-4a62-ac41-f3f0df7bcdce.png">
+This script can be downloaded from platformio, but is also provided.
 
 # Using it...
 
@@ -144,7 +177,12 @@ And when Octoprint has been shutdown, and the printer + Octoprint will be powere
 ![poweroff illustration](https://github.com/ruedli/OctoPlugout/blob/master/images/poweroff.jpg) 
 
 ## Arduino IDE is nice, but how about platformIO?
-Yes, compiling and deplyong using platformIO was a "wish" on my todo-list as well. I quite like the platformIO way of organizing embedded platform firmware! As of release 2.3, platformIO is supported. I did not abandon the Arduino IDE way of preparing and deploying firmware, but you can now do this as well using platformIO. If you have not yet installed platformIO: Go through the setup of Visual studio Code and install the platformIO plugin in VCcode. Now you can open the project folder as an platformIO project. Inside you will still find OctoPlugout.ino in a OctoPlugout folder, so that can be used by the Arduino IDE straight away. If you are coming from version 2.2, simply copy your OctoPlugout.config.h file in that folder and all will be fine. You can remove the old OctoPlugout.ino file (the 2.2 version, in the root), should the git update not have removed this file. Thanks to Bob Green for paving the road here!
+Yes, compiling and deploying using platformIO was a "wish" on my todo-list as well. I quite like the platformIO way of organizing embedded platform firmware! As of release 2.3, platformIO is supported. I did not abandon the Arduino IDE way of preparing and deploying firmware, but you can now do this as well using platformIO. If you have not yet installed platformIO: Go through the setup of Visual studio Code and install the platformIO plugin in VCcode. Now you can open the project folder as an platformIO project. Inside you will still find OctoPlugout.ino in a OctoPlugout folder, so that can be used by the Arduino IDE straight away. If you are coming from version 2.2, simply copy your OctoPlugout.config.h file in that folder and all will be fine. You can remove the old OctoPlugout.ino file (the 2.2 version, in the root), should the git update not have removed this file. Thanks to Bob Green for paving the road here!
+
+If you find your OTA failing, like the picture below, or the config portal unstable, you might have forgotten to reserve 128k for flash memory.
+
+<img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133645235-57577728-dbd1-46ab-ae46-07ee9dd9c450.png">
+
 
 ## If you like OctoPlugout...
 
@@ -164,6 +202,8 @@ Let me know, and I will see what I can do to make you like it.
 * Sander Verweij For his state machine representation which you find here: https://state-machine-cat.js.org/
 * Bob Green for helping getting platformio behave the way I wanted
 * Jim Neill (@jneilliii) for sparring on the approach for integration with a (new) octoprint plugin
+* Nick O'Leary for providing a library that allows to connect to an mqtt server.
+* Tzapu for his WiFimanager that now allows to configure Octoplugout from a webportal, so from your phone.
 
 ## Authors
 
@@ -234,6 +274,20 @@ Message on printer indicating that the plug is on (but no longer monitoring).
 - Added optional defines to invert working of relay and/or led.
 - Simplified logic for switch, it is reset to '-' after interpretation
 
+** v4.0 2021-09-09
+- Added functionality to configure parameters and WiFi through webpage http://192.168.4.1
+- Long press (more than 6 seconds) will open a wp portal on Wifi access point "SetupOctoPLugout"
+    (no credentials needed). When connected, browse to http://192.168.4.1 and set parameters for 
+    IP address of your printer, its API string, mqtt server/topic root/mqtt user/mqtt password
+    AND choose your wiFi and enter the password.
+
+** v4.1 2021-09-16
+- To support Wifi / Web portal / mqtt / OTA /debugging the memory size became more important to manage.
+- Arduino IDE users must select "1Mb / 128k FS OTA:~438KB" under "flash size" in the "tools" menu. 
+- platformio users should load the attached flash definitio in edge.flash.1m128.ld by
+      entering a line with board_build.ldscript = eagle.flash.1m128.ld in their platformio.ini file.
+ 	   The file "eagle.flash.1m128.ld" is added for your convenience as of this v4.0 of OctoPlugout.
+
 ## Requests / Future To Do List
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~
 - DONE ~~Show the "version" with a LED blinking pattern when stating up.~~
@@ -258,22 +312,6 @@ git - https://github.com/ruedli
 3. Commit your changes (`git commit -am 'Add some fooBar'`)
 4. Push to the branch (`git push origin feature/fooBar`)
 5. Create a new Pull Request
-
-Flash: error
-![image](https://user-images.githubusercontent.com/5008440/133645235-57577728-dbd1-46ab-ae46-07ee9dd9c450.png)
-
-Show config portal
-![image](https://user-images.githubusercontent.com/5008440/133644736-1f268113-ec5d-4009-ade6-1c7d3070684f.png)
-
-128k in arduiono IDE
-![image](https://user-images.githubusercontent.com/5008440/133644822-09075a68-5376-48f5-bc7f-7804f5d5afce.png)
-
-
-128k in platformio
-![image](https://user-images.githubusercontent.com/5008440/133645412-4c7a0311-944a-4a62-ac41-f3f0df7bcdce.png)
-
-MQTT stuff
-![image](https://user-images.githubusercontent.com/5008440/133646228-97b307a5-f8b8-407b-b9d3-e8cd3846401e.png)
 
 
 

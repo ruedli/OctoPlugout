@@ -1,24 +1,22 @@
 // COPY this file and name it "OctoPlugout.config.h" This ensures I never overwrite you config file when updating.
 // Version information
-#define OctoPlugout_config_version 3
+#define OctoPlugout_config_version 4
 
+// Settings can be altered from a webportal built in the plug. No need to change anything, just less config work
 //=========================================================================================================
 // For sure set THESE defines for your printer / octoprint installation
 
-#define ssid "WiFiName"         		// your network SSID (name)
-#define password "WiFiPassword" 		// your network password
-#define octoprint_apikey "D8F4....etc"	// The octoprint API key
+#define def_ssid "WiFiName"         		// your network SSID (name)
+#define def_password "WiFiPassword" 		// your network password
+#define def_octoprint_apikey "D8F4....etc"	// The octoprint API key
 
 // Set this define to use the IP address to connect to octoprint. I was unsuccessful with the "hostname" method
 // So SET THIS DEFINE, and use the IP method for connecting, as I have not been able to connect using the "hostname".
 #define UseIP
 
-// This is the IP address of your octoprint server , in the example 192.168.3.68 is configured, adapt for your printer
+// This is the IP address of your octoprint server , in the example 192.168.1.99 is configured, adapt for your printer
 // Make sure, your printer ALWAYS get the same IP address, this is normally configurable in your router (if not the case by default).
-#define ip1 192
-#define ip2 168
-#define ip3 3
-#define ip4 68
+#define def_octoprint_ip "192.168.1.99"
 
 #define octoprint_httpPort 80 //If you are connecting through a router this will work, but you need a random port forwarded to the
 							  //OctoPrint server from your router. Enter that port here if you are external
@@ -39,28 +37,36 @@
 //	 OFF: switches the plug off/shuts down the Pi, provided no printjob is running / the extruder is cooled down.
 //
 //  Other than that, it will publish print and printjob data to 5 topics listed below. 
-//  This functionality is ONLY active once you set the mqtt_server #define.
+//  This functionality is ONLY active once you set the def_mqtt_server #define.
 //  The mqtt server can be local or remote. 
 
 // MQTT server to use
-//#define mqtt_server "192.168.1.110"	// The IP address or name of your MQTT server
-#define mqtt_server "mqtt.server.com"	// The IP address or name of your MQTT server
-#define mqtt_port 1883					// The port for accessing your MQTT server
-#define mqtt_user "mqttNAME"			// The user for accessinq your mqtt server"		
-#define mqtt_pass "mqttPASS"			// The password for accessing your MQTT server
+//#define def_mqtt_server "192.168.1.100"	// The IP address or name of your MQTT server
+#define def_mqtt_server "mqtt.server.com"	// The IP address or name of your MQTT server
+#define def_mqtt_port 1883					// The port for accessing your MQTT server
+#define def_mqtt_user "mqttNAME"			// The user for accessing your mqtt server"		
+#define def_mqtt_pass "mqttPASS"			// The password for accessing your MQTT server
 
 // Topics used=============================================================================================
+#define def_mqtt_topic "sw305/printers/prusaMK3/octoplugout"	// This is the "root" that all topics share
+
 // For Octoplugout
-#define topic_OctoPlugout 			"test/prusa/octoplugout"	// (READ) Status messages and debug info (when enabled)		
-#define topic_OnOffSwitch			"test/prusa/switch"			// (WRITE) PowerSwitch for remote controlling of the plug
-// From octoprint: printer
-#define mqtt_UpdateInterval 		60000    					// Interval (ms) for updating status messages
-#define topic_PrintState 			"test/prusa/printstate"		// (READ) Status of the printer
-#define topic_ExtruderTemp			"test/prusa/extrudertemp"	// (READ) extruder temperature
-#define topic_BedTemp				"test/prusa/bedtemp"		// (READ) bed temperature
-// From octoprint: job
-#define topic_JobState 				"test/prusa/jobstate"		// (READ) Status of the job	
-#define topic_JobProgress			"test/prusa/jobprogress"	// (READ) Job progress (%)
+#define topic_State	  "/plugstate"	// READ it, Status messages and debug info (when enabled)		
+#define topic_OnOffSwitch "/switch"	// WRITE to it, for remote controlling the plug: publish one of: 
+									//		ON  Will witch on and whath print jobs finishing to power off
+									//  PERMON	Will switch on, and stay on, without considering what happens on the printer.
+									//	   OFF	Will (safely) switch off, wait for job, low temperature and shutdown Pi
+									//FORCEOFF	Will switch off, without considering what goes on at the printer. Use it e.g. when octoprint is down.
+
+// From octoprint: printer (topics will be PREPENDED by def_mqtt_topic)
+#define mqtt_UpdateInterval 		60000    				// Interval (ms) for updating status messages
+#define topic_PrintState 			"/state/printstate"		// READ it, obtain status of the printer
+#define topic_ExtruderTemp			"/state/extrudertemp"	// READ it, obtain extruder temperature
+#define topic_BedTemp				"/state/bedtemp"		// READ it, obtain bed temperature
+
+// From octoprint: job (topics will be PREPENDED by def_mqtt_topic)
+#define topic_JobState 				"/job/jobstate"		// READ it, Status of the job	
+#define topic_JobProgress			"/job/jobprogress"	// READ it, obtain Job progress 0/100%
 //=========================================================================================================
 
 
@@ -78,7 +84,7 @@
 
 // A hostname helps identifying the plug, not all operation systems will see it configured in this manner, 
 // it might need the "bonjour" service installed.
-#define hostname "OctoPlugout"
+#define op_hostname "OctoPlugout"
 
 // Set this debug_ define to write information to the serial port, will NOT be visible over Wifi, only to the serial port
 //#define debug_
@@ -119,6 +125,10 @@
 //Set to 600: If you press the button longer than 600ms, it is interpreted as a "long press"
 #define long_press_time 600
 
+//Set to 5000: If you press the button longer than 5000ms, the wifi settings are reset 
+//             and you can enter the config portal te set the relavant parameters
+#define reset_press_time 5000
+
 //Set to  5000: this means when Octoprint is running, the job state is checked every 5s.
 #define OctoprintInterval_running 5000
 
@@ -131,7 +141,7 @@
 //Set to 50.0: The raspberry is shutdown when the extruder temp is below this value:
 #define MaxExtruderTemperature 50.0
 
-//Set to 300000: Determines a printjob should be active at least 5 minutes, before triggering shutdown: shorter => NO SHUTDOWN
+//Set to 300000: (in ms) Determines a printjob should be active at least 5 minutes, before triggering shutdown: shorter => NO SHUTDOWN
 #define MinJobTime 300000
 
 //Set to 175: Determines a extruder should reach at least 175°C, before triggering shutdown: colder => NO SHUTDOWN
