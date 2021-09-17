@@ -120,7 +120,7 @@ Here you see the first flashing using its serial port. Later flashes can be done
 
 Please "save" your original Sonoff software first before you flash OctoPlugout over it. Instructions are here: https://hobbytronics.com.pk/sonoff-original-firmware-backup-restore/#Step-by-Step-Procedure
 
-As progress was made, the size increased and now you have to be carefull how you load the firmware (over the air or serial) into the plug. You need to serve 128k for filespace. On the Arduino IDE you select of from the tools menu, like this:
+As progress was made, the size increased and now you have to be carefull how you load the firmware (over the air or serial) into the plug. You need to set the filespace for FS to none. On the Arduino IDE you select of from the tools menu, like this:
 <img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133644822-09075a68-5376-48f5-bc7f-7804f5d5afce.png">
 
 In platformio, you add a script for uploading, by adding a line like this:
@@ -179,7 +179,7 @@ And when Octoprint has been shutdown, and the printer + Octoprint will be powere
 ## Arduino IDE is nice, but how about platformIO?
 Yes, compiling and deploying using platformIO was a "wish" on my todo-list as well. I quite like the platformIO way of organizing embedded platform firmware! As of release 2.3, platformIO is supported. I did not abandon the Arduino IDE way of preparing and deploying firmware, but you can now do this as well using platformIO. If you have not yet installed platformIO: Go through the setup of Visual studio Code and install the platformIO plugin in VCcode. Now you can open the project folder as an platformIO project. Inside you will still find OctoPlugout.ino in a OctoPlugout folder, so that can be used by the Arduino IDE straight away. If you are coming from version 2.2, simply copy your OctoPlugout.config.h file in that folder and all will be fine. You can remove the old OctoPlugout.ino file (the 2.2 version, in the root), should the git update not have removed this file. Thanks to Bob Green for paving the road here!
 
-If you find your OTA failing, like the picture below, or the config portal unstable, you might have forgotten to reserve 128k for flash memory.
+If you find your OTA failing, like the picture below, it might be due to the state the plug is in after updating its parameters or uploading a sketch. Power it off and retry.
 
 <img align="left" style="padding-right:30px;" src="https://user-images.githubusercontent.com/5008440/133645235-57577728-dbd1-46ab-ae46-07ee9dd9c450.png">
 
@@ -283,10 +283,13 @@ Message on printer indicating that the plug is on (but no longer monitoring).
 
 ** v4.1 2021-09-16
 - To support Wifi / Web portal / mqtt / OTA /debugging the memory size became more important to manage.
-- Arduino IDE users must select "1Mb / 128k FS OTA:~438KB" under "flash size" in the "tools" menu. 
-- platformio users should load the attached flash definitio in edge.flash.1m128.ld by
-      entering a line with board_build.ldscript = eagle.flash.1m128.ld in their platformio.ini file.
- 	   The file "eagle.flash.1m128.ld" is added for your convenience as of this v4.0 of OctoPlugout.
+- Arduino IDE users must select "1Mb / FS none:~502KB" under "flash size" in the "tools" menu. 
+- platformio users should load the attached flash definitio in edge.flash.1m.ld by
+      entering a line with board_build.ldscript = eagle.flash.1m.ld in their platformio.ini file.
+ 	  The file "eagle.flash.1m.ld" is added for your convenience as of this v4.2 of OctoPlugout.
+	   
+** v4.2 2021-09-17
+- More stable build without FS: load script adapted for loading without filesystem.
 
 ## Requests / Future To Do List
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~

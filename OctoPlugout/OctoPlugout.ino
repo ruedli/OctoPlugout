@@ -2,7 +2,7 @@
  */
 
 #define Version_major 4
-#define Version_minor 1
+#define Version_minor 2
  
  /*
  *  v1.0 - 27 oct 2020
@@ -86,6 +86,9 @@
  * "[ERROR]: No Answer to our Authentication"
  *
  * Selecting 128k resolved this for my Sonoff S26.
+ *
+ * v4.2 17 sep 2021
+ * - More stable build without FS: load script adapted.
  *=============================================================================================
  *
  *  An octoprint Arduino (ESP8266) sketch, to transform 
@@ -254,8 +257,45 @@
 
 #include <EEPROM.h>
 
-//WiFiManager, Local intialization. Once its business is done, there is no need to keep it around
+//WiFiManager & parameters, Global intialization. 
 WiFiManager wm;
+WiFiManagerParameter octopi_api;
+WiFiManagerParameter octopi_ip;
+
+#ifdef def_mqtt_server			
+WiFiManagerParameter mqtt_server;
+WiFiManagerParameter mqtt_topic;
+WiFiManagerParameter mqtt_user;
+WiFiManagerParameter mqtt_pass;
+WiFiManagerParameter mqtt_port;
+#endif
+
+//Set the defines for the pin for RELAY_ON and RELAY_OFF
+#ifdef INVERT_RELAY
+	#define RELAY_OFF HIGH
+	#define RELAY_ON   LOW
+#else
+	#define RELAY_OFF  LOW
+	#define RELAY_ON  HIGH
+#endif
+
+//Set the defines for the pin for LED_ON and LED_OFF
+#ifdef INVERT_LED
+	#define LED_OFF  LOW
+	#define LED_ON  HIGH
+#else
+	#define LED_OFF HIGH
+	#define LED_ON   LOW
+#endif
+
+//Set the defines for the pin for BUTTON_PRESSED and BUTTON_RELEASED
+#ifdef INVERT_BUTTON
+	#define BUTTON_RELEASED   LOW
+	#define BUTTON_PRESSED   HIGH
+#else
+	#define BUTTON_RELEASED  HIGH
+	#define BUTTON_PRESSED    LOW
+#endif
 
 #ifndef LED_blink_flash 
 #define LED_blink_flash false
@@ -351,13 +391,7 @@ bool OctoprintTemperatureTest(float Temperature, bool Default = false);
 bool OctoprintCool(bool Default = false);
 bool OctoprintHot (bool Default = false);
 
-bool WifiAvailable    (bool Default = false);
-bool WifiNotAvailable (bool Default = false);
-
 bool OctoprintShutdown(void);
-
-// Helper to force loop() to reconnect, even when WiFi.status() == WL_CONNECTED
-bool Force_reconnect = false;
 
 state State;
 state LastState;
@@ -420,6 +454,9 @@ bool CrazyLED_on;
 bool ButtonPressed = false;
 bool LongPress = false;
 bool ShortPress = false;
+
+bool WifiAvailable(void) 	{return (WiFi.status() == WL_CONNECTED); }
+bool WifiNotAvailable(void) {return (WiFi.status() != WL_CONNECTED); }
 
 char *OctoplugoutState(state OctoPO_State) {
 	switch (OctoPO_State) {
@@ -501,10 +538,10 @@ bool reconnect_mqtt() {
 			#ifdef debug_
 			//Serial.print(F("reconnect_mqtt: MQTT CONNECTED *****************"));
 			#endif
-			  return true;
+			return true;
 		} else {
 			#ifdef debug_
-			//Serial.print(F("Attempting MQTT connection..."));
+			Serial.println(F("Attempting MQTT connection..."));
 			#endif
 
 			// Create a random MQTTclient ID
@@ -519,14 +556,14 @@ bool reconnect_mqtt() {
 				#ifdef debug_
 				Serial.print(clientId);
 				Serial.print(F(" connected to MQTT server "));
-				Serial.print(s_mqtt_user);
+				Serial.println(s_mqtt_server);
 				#endif
 				// Resubscribe
 				
 				if (SubscribeMQTT(s_mqtt_topic,(char *)topic_OnOffSwitch)) {
 					#ifdef debug_
 					Serial.print (F("Subscribed "));
-					Serial.print (s_mqtt_topic);
+					Serial.println (s_mqtt_topic);
 					#endif
 				} else {
 					#ifdef debug_
@@ -678,257 +715,6 @@ bool SubscribeMQTT(const char* topicRoot, const char* topic) {
 	return MQTTclient.subscribe(Topic);
 }
 
-void setup () {
-  // initialize digital pins for Sonoff
-
-	pinMode(PinRelay, OUTPUT);
-	// Set the relay ON....
-	digitalWrite(PinRelay, (InitialState == Relay_off) ? LOW : HIGH);
-
-	pinMode(PinLED, OUTPUT);
-	pinMode(PinButton, INPUT);
-
-	digitalWrite(PinLED, HIGH);  // The LED is off...
-
-	Serial.begin(115200);
-	delay(1000);
-	Serial.flush();
-
-	#if LED_blink_initial==true
-	// do a fancy thing with our board led when starting up
-	for (int i = 0; i < 30; i++) {
-	  analogWrite(PinLED, (i * 100) % 1001);
-	  delay(50);
-	}
-	digitalWrite(PinLED, HIGH);  // The LED is off...
-
-	// Indicate the manor and minor version
-	const int delays[] = { Version_major , Version_minor };
-	for (int i = 0; i <= 1; i++) {
-		delay(500);
-		for (int j = 1; j <= delays[i]; j++) {
-			#ifdef debug_
-			//Serial.print("Blink: ");
-			//Serial.println(j);
-			#endif
-			delay(300);
-			digitalWrite(PinLED, LOW);  // The LED is on...
-			delay(50);
-			digitalWrite(PinLED, HIGH);  // The LED is off...
-		}
-	}
-	delay(2000);
-	#endif
-
-
-
-	/* Explicitly set the ESP8266 to be a WiFi-client, otherwise, it by default,
-	 would try to act as both a client and an access-point and could cause
-	 network-issues with your other WiFi-devices on your WiFi-network. */
-	WiFi.mode(WIFI_STA);
-	
-
-	//Set the hostname
-	ArduinoOTA.setHostname(op_hostname);
-	#ifdef OTApass
-	ArduinoOTA.setPassword(OTApass);
-	#endif
-
-  ArduinoOTA.onStart([]() {
-    String type;
-    if (ArduinoOTA.getCommand() == U_FLASH) {
-      type = "sketch";
-    } else { // U_FS
-      type = "filesystem";
-    }
-
-    // NOTE: if updating FS this would be the place to unmount FS using FS.end()
-    Serial.println("Start updating " + type);
-
-
-  });
-  
-  ArduinoOTA.onEnd([]() {
-	Serial.println("\nEnd");
-	#ifdef PinLED
-	LED_on = false;
-	digitalWrite(PinLED, LED_on ? LOW: HIGH);  // The LED is off...
-	#endif
-  });
-  
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
-	#ifdef PinLED
-	// switch off all the PWMs during upgrade
-	analogWrite(PinLED, 0);
-	#endif
-  
-    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-	#ifdef PinLED
-		if ((LED_count++ % 2) == 0) LED_on = not LED_on;
-		digitalWrite(PinLED, LED_on ? LOW: HIGH);  // The LED is blinks during uploading...
-	#endif
-  });
-  
-  ArduinoOTA.onError([](ota_error_t error) {
-	Serial.printf("Error[%u]: ", error);
-    if (error == OTA_AUTH_ERROR) {
-      Serial.println(F("Auth Failed"));
-    } else if (error == OTA_BEGIN_ERROR) {
-      Serial.println(F("Begin Failed"));
-    } else if (error == OTA_CONNECT_ERROR) {
-      Serial.println(F("Connect Failed"));
-    } else if (error == OTA_RECEIVE_ERROR) {
-      Serial.println(F("Receive Failed"));
-    } else if (error == OTA_END_ERROR) {
-      Serial.println(F("End Failed"));
-    }
-  });
-  ArduinoOTA.begin();  
-
-//Initial state and timers for OctoPrintPlugout
-
-
-	// This is the initial state
-	State = InitialState;
-	LastState = delayed_powering_relay_off;    //Ensures InitialState is ALWAYS considered in the "loop".
-	State_transition_checking_ok = true;	   // Is set "after" the LED switches "off", to avoid that the LED is on, while timing out for Pi checking.
-
-
-    OctoprintTimer = LastPressed = PowerOffRequested = TimerLED = 0;
-	WifiBeginDone = millis() - CheckWifiState - 1; // This ensures the wifi is initialized immediately.
-	OctoprintInterval = OctoprintInterval_running;
-	IntervalLED = 1000;  // Ensures that ofr one second, the LED stays off;
-	LED_on = false;
-
-    //reset settings - wipe credentials for testing
-    //wm.resetSettings();
-	
-	//read from EEPROM, these are the defaults (for the non-wifi parameters)
-	eeprom_read();
-	
-	#ifdef debug_
-	Serial.println(F("[EEPROM] settings retrieved:"));
-	Serial.print(F("O_API          = "));
-	Serial.println(s_octopi_api);
-	Serial.print(F("PARAM O_IP     = "));
-	Serial.println(ip_octopi_ip);
-	Serial.print(F("PARAM M_server = "));
-	Serial.println(s_mqtt_server);
-	Serial.print(F("PARAM M_topic  = "));
-	Serial.println(s_mqtt_topic);
-	Serial.print(F("PARAM M_user   = "));
-	Serial.println(s_mqtt_user);
-	Serial.print(F("PARAM M_pass   = "));
-	Serial.println(s_mqtt_pass);
-	Serial.print(F("PARAM M_port   = "));
-	Serial.println(i_mqtt_port);
-	#endif
-
-	// wm.setBreakAfterConfig(true);   // always exit configportal even if wifi save fails
-	
-	
-	// Force setting up cnnection in loop(), as WiFi.Status will shown WL_CONNECTED due to persistent login
-	Force_reconnect = true;
-	
-	// Show information on the Serial port
-	#ifdef debug_
-	wm.setDebugOutput(true);
-
-	//Serial.print(F("Ready: version v"));
-	//Serial.print(Version_major);
-	//Serial.print(".");
-	//Serial.println(Version_minor);
-	#else
-	wm.setDebugOutput(false);
-
-	#endif
-}
-
-bool reconnect_handle_autoconnect() {
-	
-	//wm.setCountry("NL"); 
-	
-	// set Hostname
-	//wm.setHostname("OctoPlugoutConfig");
-
-	// show password publicly in form
-	//wm.setShowPassword(true);
-
-    // Automatically connect using saved credentials,
-    // if connection fails, it starts an access point with the specified name ( "AutoConnectAP"),
-    // if empty will auto generate SSID, if password is blank it will be anonymous AP (wm.autoConnect())
-    // then goes into a blocking loop awaiting configuration and will return success result
-	
-    // res = wm.autoConnect(); // auto generated AP name from chipid
-    // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
-	
-	//Serial.println(F("going to autoconnect"));
-	WiFiManagerParameter octopi_api("O_API", "octopi API", s_octopi_api, L_octopi_api);
-	WiFiManagerParameter octopi_ip("O_IP", "octopi ip", ip_octopi_ip.toString().c_str(), L_octopi_ip*4);
-
-	#ifdef def_mqtt_server			
-	WiFiManagerParameter mqtt_server("M_server", "mqtt server", s_mqtt_server, L_mqtt_server);
-	WiFiManagerParameter mqtt_topic("M_topic", "mqtt topic", s_mqtt_topic, L_mqtt_topic);
-	WiFiManagerParameter mqtt_user("M_user", "mqtt user", s_mqtt_user, L_mqtt_user);
-	WiFiManagerParameter mqtt_pass("M_pass", "mqtt password", s_mqtt_pass, L_mqtt_pass);
-	sprintf(msg, "%d", i_mqtt_port);
-	WiFiManagerParameter mqtt_port("M_port", "mqtt port", msg, MSG_BUFFER_SIZE);
-	#endif
-	
-	wm.addParameter(&octopi_ip);	
-	wm.addParameter(&octopi_api);	
-
-	#ifdef def_mqtt_server		
-	wm.addParameter(&mqtt_server);
-	wm.addParameter(&mqtt_port);
-	wm.addParameter(&mqtt_user);
-	wm.addParameter(&mqtt_pass);
-	wm.addParameter(&mqtt_topic);
-	#endif
-	
-    //wm.setConfigPortalBlocking(true);
-    wm.setSaveParamsCallback(saveParamCallback);
-	
-	std::vector<const char *> menu = {"wifi","info","sep","restart","exit"};
-//	std::vector<const char *> menu = {"wifi","info","param","sep","restart","exit"};
-	wm.setMenu(menu);
-	
-	// set dark theme
-	wm.setClass("invert");	
-
-	wm.setConfigPortalTimeout(180); // auto close configportal after n seconds
-	//wm.setCaptivePortalEnable(false); // disable captive portal redirection
-	wm.setTimeout(60); // Wait in config portal, before trying the original wifi again.
-	//wm.setCaptivePortalEnable(false); // disable captive portal redirection
-	wm.setAPClientCheck(true); // avoid timeout if client connected to softap	
-	
-    bool res = wm.autoConnect("SetupOctoPlugout"); // password protected ap
-	//WiFi.begin("user","pass"); When the autoconnect fails....
-	//bool res = true;
-	
-	//if not connected: reboot
-    if (!res) {
-        Serial.println(F("Failed to connect, restarting"));
-        ESP.restart();
-		while(true); //Do not continue....
-    } 
-    else {
-        //if you get here you have connected to the WiFi    
-        #ifdef debug_
-		Serial.println(F("connected...yeey"));
-		#endif
-    }
-	
-	// You only need to set one of the of following, but note: I COULD NOT GET THE HOSTNAME TO WORK, use IP address!
-	#ifdef UseIP
-		api = new OctoprintApi(API_client, ip_octopi_ip, octoprint_httpPort, s_octopi_api);				  // When using IP Address
-	#else
-		char* octoprint_host = octoprintHost;    				// Or your hostname. Comment out one or the other.
-		api = new OctoprintApi(API_client, octoprint_host, octoprint_httpPort, s_octopi_api);   // When using hostname 
-	#endif		
-	return true;
-}
-
 String getParam(String name){
   //read parameter from server, for customhmtl input
   String value;
@@ -967,14 +753,292 @@ void saveParamCallback(){
 	eeprom_saveconfig();
 }
 
+
+void setup_handle_autoconnect() {
+
+//		wm.startConfigPortal("SetupOctoPlugout","pass1234"); // no password protected ap
+//BUG?? In WiFimanager: configportal crashed the ESP on saving the param screen, 
+//      so for now erase wifi and autoconnect if you want the portal.
+	//wm.setCountry("NL"); 
+	
+	// set Hostname
+	//wm.setHostname("OctoPlugoutConfig");
+
+	// show password publicly in form
+	//wm.setShowPassword(true);
+
+    // Automatically connect using saved credentials,
+    // if connection fails, it starts an access point with the specified name ( "AutoConnectAP"),
+    // if empty will auto generate SSID, if password is blank it will be anonymous AP (wm.autoConnect())
+    // then goes into a blocking loop awaiting configuration and will return success result
+	
+    // res = wm.autoConnect(); // auto generated AP name from chipid
+    // res = wm.autoConnect("AutoConnectAP"); // anonymous ap
+	
+	//Serial.println(F("going to autoconnect"));
+	new (&octopi_api) WiFiManagerParameter("O_API", "octopi API", s_octopi_api, L_octopi_api);
+	new (&octopi_ip) WiFiManagerParameter("O_IP", "octopi ip", ip_octopi_ip.toString().c_str(), L_octopi_ip*4);
+
+	#ifdef def_mqtt_server			
+	new (&mqtt_server) WiFiManagerParameter("M_server", "mqtt server", s_mqtt_server, L_mqtt_server);
+	new (&mqtt_topic) WiFiManagerParameter("M_topic", "mqtt topic", s_mqtt_topic, L_mqtt_topic);
+	new (&mqtt_user) WiFiManagerParameter ("M_user", "mqtt user", s_mqtt_user, L_mqtt_user);
+	new (&mqtt_pass) WiFiManagerParameter ("M_pass", "mqtt password", s_mqtt_pass, L_mqtt_pass);
+	sprintf(msg, "%d", i_mqtt_port);
+	new (&mqtt_port) WiFiManagerParameter ("M_port", "mqtt port", msg, MSG_BUFFER_SIZE);
+	#endif
+	
+	wm.addParameter(&octopi_ip);	
+	wm.addParameter(&octopi_api);	
+
+	#ifdef def_mqtt_server		
+	wm.addParameter(&mqtt_server);
+	wm.addParameter(&mqtt_port);
+	wm.addParameter(&mqtt_user);
+	wm.addParameter(&mqtt_pass);
+	wm.addParameter(&mqtt_topic);
+	#endif
+	
+    //wm.setConfigPortalBlocking(true);
+    wm.setSaveParamsCallback(saveParamCallback);
+	
+	std::vector<const char *> menu = {"wifi","info","sep","restart","exit"};
+//	std::vector<const char *> menu = {"wifi","info","param","sep","restart","exit"};
+	wm.setMenu(menu);
+	
+	// set dark theme
+	wm.setClass("invert");	
+
+	wm.setConfigPortalTimeout(180); // auto close configportal after n seconds
+	//wm.setCaptivePortalEnable(false); // disable captive portal redirection
+	wm.setTimeout(60); // Wait in config portal, before trying the original wifi again.
+	//wm.setCaptivePortalEnable(false); // disable captive portal redirection
+	wm.setAPClientCheck(true); // avoid timeout if client connected to softap
+}
+	
+bool reconnect_handle_autoconnect(bool forcePortal = false) {
+	
+	if (forcePortal) {
+		#ifdef debug_
+		Serial.print(F("Setup through startConfigPortal"));
+		#endif
+		WiFi.disconnect();
+		delay(500);
+		wm.resetSettings();
+		delay(500);
+	} else {
+		#ifdef debug_
+		if (!forcePortal) Serial.print(F("Setup through autoConnect"));
+		#endif
+	}	
+	
+	wm.autoConnect("SetupOctoPlugout"); // no password protected ap
+	/* ALTERNATIVELY USE THIS IF PORTAL WORKS FOR AUTOCONNECT (and just call the portal, when forcePortal true)
+	long Now=millis();
+	while ((WifiNotAvailable()) and ((millis()-Now)<5000)) delay(10);			// Try if connection is there for 5s
+	if (WifiNotAvailable() or forcePortal) wm.startConfigPortal("SetupOctoPlugout","pass1234"); // password protected ap
+	*/
+
+    if (WifiNotAvailable()) {
+        Serial.println(F("Failed to connect, restarting"));
+        ESP.restart();
+		while(true); //Do not continue....
+    } 
+    else {
+        //if you get here you have connected to the WiFi    
+        #ifdef debug_
+		Serial.println(F("connected...yeey"));
+		#endif
+    }
+	
+	// You only need to set one of the of following, but note: I COULD NOT GET THE HOSTNAME TO WORK, use IP address!
+	#ifdef UseIP
+		api = new OctoprintApi(API_client, ip_octopi_ip, octoprint_httpPort, s_octopi_api);				  // When using IP Address
+	#else
+		//char* octoprint_host = octoprintHost;    				// Or your hostname. Comment out one or the other.
+		//api = new OctoprintApi(API_client, octoprint_host, octoprint_httpPort, s_octopi_api);   // When using hostname 
+	#endif		
+	return true;
+}
+
+void setup () {
+  // initialize digital pins for Sonoff
+
+	pinMode(PinRelay, OUTPUT);
+	// Set the relay ON or OFF depending on initial state....
+	digitalWrite(PinRelay, (InitialState == Relay_off) ? RELAY_OFF : RELAY_ON);
+
+	pinMode(PinLED, OUTPUT);
+	pinMode(PinButton, INPUT);
+
+	digitalWrite(PinLED, LED_OFF);  // The LED is off...
+
+	Serial.begin(115200);
+	delay(1000);
+	Serial.flush();
+
+	#if LED_blink_initial==true
+	// do a fancy thing with our board led when starting up
+	/* It was distracting and delaying sorry...
+	for (int i = 0; i < 30; i++) {
+	  analogWrite(PinLED, (i * 100) % 1001);
+	  delay(50);
+	}
+	digitalWrite(PinLED, LED_OFF);  // The LED is off...
+	*/ //END of distracting code
+
+	// Indicate the manor and minor version
+	const int delays[] = { Version_major , Version_minor };
+	for (int i = 0; i <= 1; i++) {
+		delay(450);
+		for (int j = 1; j <= delays[i]; j++) {
+			#ifdef debug_
+			//Serial.print("Blink: ");
+			//Serial.println(j);
+			#endif
+			delay(300);
+			digitalWrite(PinLED, LED_ON);  // The LED is on...
+			delay(30);
+			digitalWrite(PinLED, LED_OFF);  // The LED is off...
+		}
+	}
+	delay(2000);
+	#endif
+
+
+
+	/* Explicitly set the ESP8266 to be a WiFi-client, otherwise, it by default,
+	 would try to act as both a client and an access-point and could cause
+	 network-issues with your other WiFi-devices on your WiFi-network. */
+	WiFi.mode(WIFI_STA);
+	
+
+	//Set the hostname
+	ArduinoOTA.setHostname(op_hostname);
+	#ifdef OTApass
+	ArduinoOTA.setPassword(OTApass);
+	#endif
+
+  ArduinoOTA.onStart([]() {
+    String type;
+    if (ArduinoOTA.getCommand() == U_FLASH) {
+      type = "sketch";
+    } else { // U_FS
+      type = "filesystem";
+    }
+
+    // NOTE: if updating FS this would be the place to unmount FS using FS.end()
+    Serial.println("Start updating " + type);
+
+
+  });
+  
+  ArduinoOTA.onEnd([]() {
+	Serial.println("\nEnd");
+	#ifdef PinLED
+	LED_on = false;
+	digitalWrite(PinLED, LED_on ? LED_ON: LED_OFF);  // The LED is off...
+	#endif
+  });
+  
+  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+	#ifdef PinLED
+	// switch off all the PWMs during upgrade
+	analogWrite(PinLED, 0);
+	#endif
+  
+    Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+	#ifdef PinLED
+		if ((LED_count++ % 2) == 0) LED_on = not LED_on;
+		digitalWrite(PinLED, LED_on ? LED_OFF: LED_ON);  // The LED is blinks during uploading...
+	#endif
+  });
+  
+  ArduinoOTA.onError([](ota_error_t error) {
+	Serial.printf("Error[%u]: ", error);
+    if (error == OTA_AUTH_ERROR) {
+      Serial.println(F("Auth Failed"));
+    } else if (error == OTA_BEGIN_ERROR) {
+      Serial.println(F("Begin Failed"));
+    } else if (error == OTA_CONNECT_ERROR) {
+      Serial.println(F("Connect Failed"));
+    } else if (error == OTA_RECEIVE_ERROR) {
+      Serial.println(F("Receive Failed"));
+    } else if (error == OTA_END_ERROR) {
+      Serial.println(F("End Failed"));
+    }
+  });
+  ArduinoOTA.begin();  
+
+//Initial state and timers for OctoPrintPlugout
+
+
+	// This is the initial state
+	State = InitialState;
+	LastState = nothing;    //Ensures InitialState is ALWAYS considered in the "loop".
+	State_transition_checking_ok = true;	   // Is set "after" the LED switches "off", to avoid that the LED is on, while timing out for Pi checking.
+
+
+    OctoprintTimer = LastPressed = PowerOffRequested = TimerLED = 0;
+	WifiBeginDone = millis() - CheckWifiState - 1; // This ensures the wifi is initialized immediately.
+	OctoprintInterval = OctoprintInterval_running;
+	IntervalLED = 1000;  // Ensures that ofr one second, the LED stays off;
+	LED_on = false;
+
+    //reset settings - wipe credentials for testing
+    //wm.resetSettings();
+	
+	//read from EEPROM, these are the defaults (for the non-wifi parameters)
+	eeprom_read();
+	
+	#ifdef debug_
+	Serial.println(F("[EEPROM] settings retrieved:"));
+	Serial.print(F("O_API          = "));
+	Serial.println(s_octopi_api);
+	Serial.print(F("PARAM O_IP     = "));
+	Serial.println(ip_octopi_ip);
+	Serial.print(F("PARAM M_server = "));
+	Serial.println(s_mqtt_server);
+	Serial.print(F("PARAM M_topic  = "));
+	Serial.println(s_mqtt_topic);
+	Serial.print(F("PARAM M_user   = "));
+	Serial.println(s_mqtt_user);
+	Serial.print(F("PARAM M_pass   = "));
+	Serial.println(s_mqtt_pass);
+	Serial.print(F("PARAM M_port   = "));
+	Serial.println(i_mqtt_port);
+	#endif
+
+	// wm.setBreakAfterConfig(true);   // always exit configportal even if wifi save fails
+	
+	// Show information on the Serial port
+	#ifdef debug_
+	wm.setDebugOutput(true);
+
+	//Serial.print(F("Ready: version v"));
+	//Serial.print(Version_major);
+	//Serial.print(".");
+	//Serial.println(Version_minor);
+	#else
+	wm.setDebugOutput(false);
+	#endif
+	
+	setup_handle_autoconnect();
+	reconnect_handle_autoconnect();
+	
+	//ArduinoOTA.handle();
+}
+
 void loop() {
 	
 	unsigned long Now = millis();
 	
 	bool mqtt_connected = false;
+
+	ArduinoOTA.handle();
 	
 	//Always try Wifi state and if necessary connect to wifi..	
-	if (WiFi.status() == WL_CONNECTED and !Force_reconnect) {
+	if (WiFi.status() == WL_CONNECTED) {
 		#ifdef debug_
 		//Serial.println(F("In loop: Wifi was connected"));
 		#endif		//
@@ -986,9 +1050,7 @@ void loop() {
 			#ifdef debug_
 			//Serial.println(F("Autoconnecting to WIFI"));
 			#endif
-
-			Force_reconnect = false; //Only force once...
-			
+	
 			if (reconnect_handle_autoconnect()) {
 				//Serial.println(F("Now connected to WIFI"));
 			} else {
@@ -996,7 +1058,7 @@ void loop() {
 				ESP.restart();
 				while(true); //Do not continue....
 			}
-	
+
 			WifiBeginDone = Now;
 
 			#ifdef debug_
@@ -1033,8 +1095,6 @@ void loop() {
 	}
 	#endif
 
-	ArduinoOTA.handle();
-		
 	//Evaluate LED stuff: All switching on and off (for "blinking") takes place here...
 	//First determine whether it is time to toggle the LED:
 	if ((Now - TimerLED) > IntervalLED) {
@@ -1052,11 +1112,9 @@ void loop() {
 			IntervalLED=LED_OFF_TIME[State];
 			State_transition_checking_ok = true;	// Ensures the LED is OFF while checking the state.
 		}
-		#ifdef INVERT_LED
-		digitalWrite(PinLED, LED_on ? HIGH: LOW);	// Actually switch the LED on or Off, depending on LED_on.
-		#else
-		digitalWrite(PinLED, LED_on ? LOW: HIGH);	// Actually switch the LED on or Off, depending on LED_on.
-		#endif
+
+		digitalWrite(PinLED, LED_on ? LED_ON: LED_OFF);	// Actually switch the LED on or Off, depending on LED_on.
+
 	}
 	
 	// Evaluate button: debouncing after it is pressed
@@ -1065,14 +1123,14 @@ void loop() {
 	ShortPress = LongPress = false; // Reset
 	if ((Now - LastPressed) > debounce_interval) {
 		if (ButtonPressed) {
-			if (digitalRead(PinButton) == HIGH) {            //This means the button is (now) released
-				digitalWrite(PinLED, HIGH);					// Switch led off, in case we were "Crazy Blinking"
+			if (digitalRead(PinButton) == BUTTON_RELEASED) {            //This means the button is (now) released
+				digitalWrite(PinLED, LED_OFF);					// Switch led off, in case we were "Crazy Blinking"
 				if ((Now - LastPressed) > reset_press_time) { // Checking whether it is a short, or RESET button press
-					wm.resetSettings();
-					delay(1000);
-					ESP.restart();
-					while(true); //Do not continue....
-					
+					bool res = reconnect_handle_autoconnect(true);	//Handle right away and be done with it.
+					if (not res) {
+						ESP.restart();
+						while(true); //Do not continue....
+					}
 				} else if ((Now - LastPressed) > long_press_time) { // Checking whether it is a short, or long button press
 					LongPress = true;
 				} else {
@@ -1086,13 +1144,13 @@ void loop() {
 					if ((Now - CrazyLED) >= CrazyLED_int) {
 						CrazyLED = Now;
 						CrazyLED_on = !CrazyLED_on;
-						digitalWrite(PinLED, CrazyLED_on ? LOW: HIGH);
+						digitalWrite(PinLED, CrazyLED_on ? LED_ON: LED_OFF);
 					}					
 				}
 			}				
 			
 		} else {
-			if (digitalRead(PinButton) == LOW) { 			//This means the button is (now) pressed
+			if (digitalRead(PinButton) == BUTTON_PRESSED) { 			//This means the button is (now) pressed
 				ButtonPressed = true;
 				LastPressed = Now; 				 			// For debouncing
 			}
@@ -1290,11 +1348,7 @@ void loop() {
 		LastState = State;
 
 		//Set the relay
-		#ifdef INVERT_RELAY
-		digitalWrite(PinRelay, (State == Relay_off) ? HIGH : LOW);
-		#else
-		digitalWrite(PinRelay, (State == Relay_off) ? LOW : HIGH);
-		#endif
+		digitalWrite(PinRelay, (State == Relay_off) ? RELAY_OFF : RELAY_ON);
 		
 		#ifdef def_mqtt_server
 		// Publish new state
@@ -1416,16 +1470,6 @@ void loop() {
 	#endif
 }
 
-bool WifiAvailable(void)
-{
-	return (WiFi.status() == WL_CONNECTED); 
-}
-
-bool WifiNotAvailable(void)
-{
-	return (WiFi.status() != WL_CONNECTED); 
-}
-	
 bool OctoprintShutdown(void)
 {
 	if (WiFi.status() == WL_CONNECTED) {
