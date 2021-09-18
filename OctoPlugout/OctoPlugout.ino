@@ -2,7 +2,7 @@
  */
 
 #define Version_major 4
-#define Version_minor 2
+#define Version_minor 3
  
  /*
  *  v1.0 - 27 oct 2020
@@ -261,6 +261,8 @@
 WiFiManager wm;
 WiFiManagerParameter octopi_api;
 WiFiManagerParameter octopi_ip;
+WiFiManagerParameter wifi_ssid;
+WiFiManagerParameter wifi_pass;
 
 #ifdef def_mqtt_server			
 WiFiManagerParameter mqtt_server;
@@ -408,18 +410,28 @@ OctoprintApi* api=0;
 #define L_mqtt_user		16
 #define L_mqtt_pass		16
 #define L_mqtt_port		 2	
+#define L_wifi_ssid		16
+#define L_wifi_pass		16
 
 #define S_salt			0
 #define S_octopi_api 	0 + S_salt   	  + L_salt
 #define S_octopi_ip 	1 + S_octopi_api  + L_octopi_api
-#define S_mqtt_server   0 + S_octopi_ip   + L_octopi_ip
+
+#define S_wifi_ssid		0 + S_octopi_ip   + L_octopi_ip
+#define S_wifi_pass		1 + S_wifi_ssid	  + L_wifi_ssid
+
+#define S_mqtt_server   1 + S_wifi_pass   + L_wifi_pass
 #define S_mqtt_topic	1 + S_mqtt_server + L_mqtt_server
 #define S_mqtt_user		1 + S_mqtt_topic  + L_mqtt_topic
 #define S_mqtt_pass		1 + S_mqtt_user   + L_mqtt_user
 #define S_mqtt_port		1 + S_mqtt_pass   + L_mqtt_pass
-#define S_NEXT			0 + S_mqtt_port   + L_mqtt_port
+
+#define S_NEXT			1 + S_wifi_pass   + L_wifi_pass
 
 IPAddress ip_octopi_ip;
+char s_wifi_ssid[L_wifi_ssid+1];
+char s_wifi_pass[L_wifi_pass+1];
+
 char s_octopi_api[L_octopi_api+1];
 
 #ifdef def_mqtt_server
@@ -427,7 +439,7 @@ char s_mqtt_server[L_mqtt_server+1];
 char s_mqtt_topic[L_mqtt_topic+1];
 char s_mqtt_user[L_mqtt_user+1];
 char s_mqtt_pass[L_mqtt_pass+1];
-short i_mqtt_port;
+unsigned short i_mqtt_port;
 
 state StateMQTT = nothing;			// Callback will set this, loop() will use it.
 #endif
@@ -593,11 +605,11 @@ bool reconnect_mqtt() {
 
 // SALT is save to eeprom, if it is wrong, it assumed to be corrupted and reinitialized
 #ifdef def_mqtt_server		
-	#define SALT 5930
-	#define L_EEPROM  7 + 2 + L_octopi_api + L_octopi_ip + L_mqtt_server + L_mqtt_user + L_mqtt_pass + L_mqtt_topic + L_mqtt_port
+	#define SALT 5937
+	#define L_EEPROM  9 + 2 + L_octopi_api + L_octopi_ip + L_wifi_ssid + L_wifi_pass + L_mqtt_server + L_mqtt_user + L_mqtt_pass + L_mqtt_topic + L_mqtt_port
 #else
-	#define SALT 5929	// By making SALTs different, EEPROM is reinitialized when mqtt_server mode is selected.
-	#define L_EEPROM  2 + 2 + L_octopi_api + L_octopi_ip
+	#define SALT 5939	// By making SALTs different, EEPROM is reinitialized when mqtt_server mode is selected.
+	#define L_EEPROM  2 + 2 + L_octopi_api + L_octopi_ip + L_wifi_ssid + L_wifi_pass
 #endif
 
 void EEPROMputs(int strEEPROM, const char *save) {
@@ -619,6 +631,8 @@ void eeprom_saveconfig()
 	EEPROM.put(0, salt);
 	EEPROMputs(S_octopi_api, s_octopi_api);
 	EEPROMputIP(S_octopi_ip, ip_octopi_ip, L_octopi_ip);  
+	EEPROMputs(S_wifi_ssid, s_wifi_ssid);
+	EEPROMputs(S_wifi_pass, s_wifi_pass);
 	#ifdef def_mqtt_server		  
 	EEPROMputs(S_mqtt_server, s_mqtt_server);
 	EEPROMputs(S_mqtt_topic, s_mqtt_topic);
@@ -626,6 +640,9 @@ void eeprom_saveconfig()
 	EEPROMputs(S_mqtt_pass, s_mqtt_pass);
 	EEPROM.put(S_mqtt_port, i_mqtt_port);
 	#endif
+	EEPROM.put(S_wifi_ssid, s_wifi_ssid);
+	EEPROM.put(S_wifi_pass, s_wifi_pass);
+
 	EEPROM.commit();
 	EEPROM.end();
 	if (((byte)s_mqtt_server[0]==0) or (strcmp(s_mqtt_server,"none")==0)) {
@@ -649,6 +666,8 @@ void eeprom_read()
 		//Serial.println(F("Reading EEPROM")); 
 		EEPROM.get(S_octopi_api, s_octopi_api);
 		for (byte i=0;i<4;i++) EEPROM.get(S_octopi_ip + i,ip_octopi_ip[i]);
+		EEPROM.get(S_wifi_ssid, s_wifi_ssid);
+		EEPROM.get(S_wifi_pass, s_wifi_pass);		
 		#ifdef def_mqtt_server		
 		EEPROM.get(S_mqtt_server, s_mqtt_server);
 		EEPROM.get(S_mqtt_topic, s_mqtt_topic);
@@ -672,6 +691,8 @@ void eeprom_read()
 		EEPROM.end();
 		//Serial.println(F("Initializing EEPROM from defaults"));
 		strcpy (s_octopi_api, def_octoprint_apikey);
+		strcpy (s_wifi_ssid, def_ssid);
+		strcpy (s_wifi_pass, def_password);
 		if (not ip_octopi_ip.fromString(def_octoprint_ip)) {
 			#ifdef debug_
 			//Serial.print(F("ip.Fromstring failed: "));
@@ -731,6 +752,8 @@ void saveParamCallback(){
 
 	strcpy(s_octopi_api,getParam("O_API").c_str());
 	ip_octopi_ip.fromString(getParam("O_IP").c_str());
+	strcpy(s_wifi_ssid,getParam("SSID").c_str());
+	strcpy(s_wifi_pass,getParam("WiFiPass").c_str());
 	#ifdef def_mqtt_server
 	/*
 	strcpy(s_mqtt_server,mqtt_server.getValue().c_str());
@@ -779,6 +802,9 @@ void setup_handle_autoconnect() {
 	new (&octopi_api) WiFiManagerParameter("O_API", "octopi API", s_octopi_api, L_octopi_api);
 	new (&octopi_ip) WiFiManagerParameter("O_IP", "octopi ip", ip_octopi_ip.toString().c_str(), L_octopi_ip*4);
 
+	new (&wifi_ssid) WiFiManagerParameter("SSID", "WiFi SSID", s_wifi_ssid, L_wifi_ssid);
+	new (&wifi_pass) WiFiManagerParameter("WiFiPass", "WiFi password", s_wifi_pass, L_wifi_pass);
+
 	#ifdef def_mqtt_server			
 	new (&mqtt_server) WiFiManagerParameter("M_server", "mqtt server", s_mqtt_server, L_mqtt_server);
 	new (&mqtt_topic) WiFiManagerParameter("M_topic", "mqtt topic", s_mqtt_topic, L_mqtt_topic);
@@ -787,6 +813,9 @@ void setup_handle_autoconnect() {
 	sprintf(msg, "%d", i_mqtt_port);
 	new (&mqtt_port) WiFiManagerParameter ("M_port", "mqtt port", msg, MSG_BUFFER_SIZE);
 	#endif
+
+	wm.addParameter(&wifi_ssid);
+	wm.addParameter(&wifi_pass);
 	
 	wm.addParameter(&octopi_ip);	
 	wm.addParameter(&octopi_api);	
@@ -802,8 +831,9 @@ void setup_handle_autoconnect() {
     //wm.setConfigPortalBlocking(true);
     wm.setSaveParamsCallback(saveParamCallback);
 	
-	std::vector<const char *> menu = {"wifi","info","sep","restart","exit"};
+//	std::vector<const char *> menu = {"wifi","info","sep","restart","exit"};
 //	std::vector<const char *> menu = {"wifi","info","param","sep","restart","exit"};
+	std::vector<const char *> menu = {"info","param","sep","restart","exit"};
 	wm.setMenu(menu);
 	
 	// set dark theme
@@ -831,20 +861,30 @@ bool reconnect_handle_autoconnect(bool forcePortal = false) {
 		if (!forcePortal) Serial.print(F("Setup through autoConnect"));
 		#endif
 	}	
+
+	WiFi.mode(WIFI_STA);
+	if (forcePortal) {
+		if (WifiAvailable()) { WiFi.disconnect();}
+	} else {
+		WiFi.begin(s_wifi_ssid,s_wifi_pass);
+		long Now=millis();
+		while ((WifiNotAvailable()) and ((millis()-Now)<15000)) delay(10);			// Try if connection is there for 5s
+	}
 	
-	wm.autoConnect("SetupOctoPlugout"); // no password protected ap
-	/* ALTERNATIVELY USE THIS IF PORTAL WORKS FOR AUTOCONNECT (and just call the portal, when forcePortal true)
-	long Now=millis();
-	while ((WifiNotAvailable()) and ((millis()-Now)<5000)) delay(10);			// Try if connection is there for 5s
-	if (WifiNotAvailable() or forcePortal) wm.startConfigPortal("SetupOctoPlugout","pass1234"); // password protected ap
-	*/
+	wm.autoConnect("SetupOctoPlugout"); // no password protected ap: if the password / ssid are wrong the portal is active.
+
+	if (WifiNotAvailable()) {
+		WiFi.mode(WIFI_STA);
+		WiFi.begin(s_wifi_ssid,s_wifi_pass);
+		long Now=millis();
+		while ((WifiNotAvailable()) and ((millis()-Now)<15000)) delay(10);	
+	}		
 
     if (WifiNotAvailable()) {
         Serial.println(F("Failed to connect, restarting"));
         ESP.restart();
 		while(true); //Do not continue....
-    } 
-    else {
+    } else {
         //if you get here you have connected to the WiFi    
         #ifdef debug_
 		Serial.println(F("connected...yeey"));
@@ -876,7 +916,7 @@ void setup () {
 	Serial.begin(115200);
 	delay(1000);
 	Serial.flush();
-
+	
 	#if LED_blink_initial==true
 	// do a fancy thing with our board led when starting up
 	/* It was distracting and delaying sorry...
@@ -912,6 +952,9 @@ void setup () {
 	 network-issues with your other WiFi-devices on your WiFi-network. */
 	WiFi.mode(WIFI_STA);
 	
+	WiFi.begin(def_ssid,def_password);
+	long Now=millis();
+	while ((WifiNotAvailable()) and ((millis()-Now)<5000)) delay(10);			// Try if connection is 	
 
 	//Set the hostname
 	ArduinoOTA.setHostname(op_hostname);
@@ -993,6 +1036,10 @@ void setup () {
 	
 	#ifdef debug_
 	Serial.println(F("[EEPROM] settings retrieved:"));
+	Serial.print(F("PARAM WiFi SSID= "));
+	Serial.println(s_wifi_ssid);
+	Serial.print(F("PARAM WiFi pass= "));
+	Serial.println(s_wifi_pass);
 	Serial.print(F("O_API          = "));
 	Serial.println(s_octopi_api);
 	Serial.print(F("PARAM O_IP     = "));
