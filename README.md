@@ -89,7 +89,7 @@ For the required mqtt server, I installed Mosquitto on my NAS. You can also inst
 
 The picture below shows topics send to and from the plug, you can see the plug reacting to ON OFF PERMON and FORCEOFF messages and go through its states.
 
-<img src="https://user-images.githubusercontent.com/5008440/133646228-97b307a5-f8b8-407b-b9d3-e8cd3846401e.png" alt="drawing" width="450"/>
+<img src="https://user-images.githubusercontent.com/5008440/133646228-97b307a5-f8b8-407b-b9d3-e8cd3846401e.png" alt="drawing" width="300"/>
 
 If you install mqtt plugins in octoprint, you can also operate your printer through mqtt or see what it is doing. In this way I was able to have a pulldown in octoprint to safely power off.
 Not "on", because the webpage is not available until the Pi is running.
@@ -124,9 +124,11 @@ Please "save" your original Sonoff software first before you flash OctoPlugout o
 
 To preserve stability in combination with OTA, WiFimanager, mqtt and the octoprint API it is important to avoid reserving space for a filesystem. In the arduino IDE select the option under tools like this:
 
+<img src="https://user-images.githubusercontent.com/5008440/133854299-6ad2c094-599e-42ff-b308-c8156e0d41d0.png" alt="drawing" width="400"/>
+
 In platformio, you add a script for uploading, by adding a line like this:
 	
-<img src="https://user-images.githubusercontent.com/5008440/133645412-4c7a0311-944a-4a62-ac41-f3f0df7bcdce.png" alt="drawing" width="300"/>
+<img src="https://user-images.githubusercontent.com/5008440/133854213-8d89ac36-7904-40db-8446-58735b84c301.png" alt="drawing" width="300"/>
 
 This script can be downloaded from platformio, but is also provided.
 
