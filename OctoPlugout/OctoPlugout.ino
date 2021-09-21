@@ -2,7 +2,7 @@
  */
 
 #define Version_major 4
-#define Version_minor 4
+#define Version_minor 5
  
  /*
  *  v1.0 - 27 oct 2020
@@ -90,10 +90,10 @@
  * v4.2 17 sep 2021
  * - More stable build without FS: load script adapted.
  *
- * v4.3 18 sep 2022
+ * v4.3 18 sep 2021
  * - Prevent switching due to retained switch messages on MQQT: now a "-" message will be retained.
  *
- * v4.4 21 sep 2022
+ * v4.4 21 sep 2021
  * - Enabled config portal
  * - When Wifi is NOT configured (or not working) connect to:
  *       AP (wifi SSID) "SetupOctoplugout" 
@@ -104,6 +104,9 @@
  *		- Open http://octoplugout 
  *		- Click "setup" and all parameters can be configured.
  *		- After "save" the plug will reboot and use the new parameters.
+ *
+ * v4.5 21 sep 2021
+ * - Ensured that the build would succeed when no mqtt was used (def_mqtt_server undefined)
  * *=============================================================================================
  *
  *  An octoprint Arduino (ESP8266) sketch, to transform 
@@ -515,6 +518,7 @@ char *OctoplugoutState(state OctoPO_State) {
 	return ((char *)"");
 }
 
+#ifdef def_mqtt_server
 bool PublishMQTT(const char* topicRoot, const char* topic, String msg, bool retained = false) {
 	char Topic[60];
 	strcpy(Topic,topicRoot);
@@ -529,7 +533,6 @@ bool SubscribeMQTT(const char* topicRoot, const char* topic) {
 	return MQTTclient.subscribe(Topic);
 }
 
-#ifdef def_mqtt_server
 void MQTTcallback(char* topic, byte* payload, unsigned int length) {
 	if (mqtt_active) {
 		#ifdef debug_
@@ -709,11 +712,14 @@ void eeprom_saveconfig()
 
 	EEPROM.commit();
 	EEPROM.end();
+
+	#ifdef def_mqtt_server
 	if (((byte)s_mqtt_server[0]==0) or (strcmp(s_mqtt_server,"none")==0)) {
 		mqtt_active = false;
 	} else {
 		mqtt_active = true;
-	}	
+	}
+	#endif	
 }
 
 void eeprom_read() 
@@ -773,11 +779,13 @@ void eeprom_read()
 		#endif
 		eeprom_saveconfig();
 		
+		#ifdef def_mqtt_server
 		if (((byte)s_mqtt_server[0]==0) or (strcmp(s_mqtt_server,"none")==0)) {
 			mqtt_active = false;
 		} else {
 			mqtt_active = true;
-		}		
+		}	
+		#endif	
 		
 	};	  	  
 }
@@ -933,8 +941,10 @@ void setup () {
 	delay(2000);
 	#endif
 
+	#ifdef def_mqtt_server
 	//Set the mqtt callback
 	MQTTclient.setCallback(MQTTcallback);
+	#endif
 
 	/* Explicitly set the ESP8266 to be a WiFi-client, otherwise, it by default,
 	 would try to act as both a client and an access-point and could cause
@@ -1103,11 +1113,11 @@ void loop() {
 	
 	doWiFiManager();
 	
-	bool mqtt_connected = false;
-
 	ArduinoOTA.handle();
 	
 	#ifdef def_mqtt_server
+	bool mqtt_connected = false;
+	
 	if (mqtt_active) {
 		if (MQTTclient.connected()) {
 			//Serial.println(F("In loop: mqtt is CONNECTED"));

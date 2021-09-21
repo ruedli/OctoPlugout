@@ -303,7 +303,7 @@ Message on printer indicating that the plug is on (but no longer monitoring).
 
 ** v4.3 - not released
 
-** v4.4 21 sep 2022
+** v4.4 21 sep 2021
 - Enabled config portal
 - When Wifi is NOT configured (or not working) connect to:
     AP (wifi SSID) "SetupOctoplugout" 
@@ -314,6 +314,9 @@ Message on printer indicating that the plug is on (but no longer monitoring).
 	- Open http://octoplugout 
 	- Click "setup" and all parameters can be configured.
 	- After "save" the plug will reboot and use the new parameters.
+	
+** v4.5 21 sep 2021
+- Ensured that the build would succeed when no mqtt was used (def_mqtt_server undefined)
 
 ## Requests / Future To Do List
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~
