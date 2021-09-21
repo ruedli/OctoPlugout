@@ -57,11 +57,16 @@ The "OctoPlugout" sketch has ALL its configuration parameters in one place: the 
 
 ![The critical configuration](https://github.com/ruedli/OctoPlugout/blob/master/images/config.jpg) 
 
-**New in version 4.0** is the "configuration portal". If you press the button of your sonoff more then 5 seconds, the LED will start "fast blinking" and when you release it, the wifi credentials will be erased and you need to re-configure them. Here you can also configure all other parameters. Proceed as follws:
+**New in version 4.0** is the "configuration portal". If you press the button of your sonoff more then 5 seconds, the LED will start "fast blinking" and when you release it, a configuration website will be available at http://octoplugout Here you can also configure all other parameters, or change your wifi. Proceed as follows:
 - Press and hold the button at least 5 seconds (or more) until the LED starts blinking.
-- Connect your phone of PC to a wifi network called "SetupOctoPlugout" (do this within one minute)
-- Next browse to 192.168.4.1
-Here you see the below page, which allows you to select an available WiFi and enter an access password. Remeber: the existing one will alsway be erased, so you need to reconfigure it after you pressed the button > 5 seconds!
+- Browse http://octoplugout (do this within one minute) or browse to the IP address that octoplugout received in your wifi network.
+- Here you see a menu like below, with a page for Wifi setup and another page (setup) for all parameters.
+- After you redefine parameters, the ESP will reboot.
+
+* Hidden in the "info" page is an upgrade button.
+This button allows you to select a "bin" file, which then can be uploaded "over the air". Future releases might be provided as "bin" file (mail me if you need one). These then can be uploaded without requiring any tools (when 4.4 or newer is installed, or a sketch supporting OTA).
+
+Parameters define through the menu:
 
 <img src="https://user-images.githubusercontent.com/5008440/133644736-1f268113-ec5d-4009-ade6-1c7d3070684f.png" alt="drawing" width="200"/>
 
@@ -295,6 +300,20 @@ Message on printer indicating that the plug is on (but no longer monitoring).
 	   
 ** v4.2 2021-09-17
 - More stable build without FS: load script adapted for loading without filesystem.
+
+** v4.3 - not released
+
+** v4.4 21 sep 2022
+- Enabled config portal
+- When Wifi is NOT configured (or not working) connect to:
+    AP (wifi SSID) "SetupOctoplugout" 
+		 website 		"192.168.4.1 and configure wifi.
+- Long pressing the button (>6s) will result in a fast blinking LED
+	- When LED is fast blinking:
+    - Release
+	- Open http://octoplugout 
+	- Click "setup" and all parameters can be configured.
+	- After "save" the plug will reboot and use the new parameters.
 
 ## Requests / Future To Do List
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~

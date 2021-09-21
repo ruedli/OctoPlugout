@@ -2,7 +2,7 @@
  */
 
 #define Version_major 4
-#define Version_minor 3
+#define Version_minor 4
  
  /*
  *  v1.0 - 27 oct 2020
@@ -89,7 +89,22 @@
  *
  * v4.2 17 sep 2021
  * - More stable build without FS: load script adapted.
- *=============================================================================================
+ *
+ * v4.3 18 sep 2022
+ * - Prevent switching due to retained switch messages on MQQT: now a "-" message will be retained.
+ *
+ * v4.4 21 sep 2022
+ * - Enabled config portal
+ * - When Wifi is NOT configured (or not working) connect to:
+ *       AP (wifi SSID) "SetupOctoplugout" 
+ * 		 website 		"192.168.4.1 and configure wifi.
+ * - Long pressing the button (>6s) will result in fast blinking LED
+ *		- When LED is fast blinking:
+ *      - Release
+ *		- Open http://octoplugout 
+ *		- Click "setup" and all parameters can be configured.
+ *		- After "save" the plug will reboot and use the new parameters.
+ * *=============================================================================================
  *
  *  An octoprint Arduino (ESP8266) sketch, to transform 
  *  a SonOff plug into an "intelligent" socket that will safely remove power
@@ -237,6 +252,14 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 
+
+// include MDNS (for WiFimanager)
+#ifdef ESP8266
+#include <ESP8266mDNS.h>
+#elif defined(ESP32)
+#include <ESPmDNS.h>
+#endif
+
 //Not needed! although the OTA example sketch contained them
 //#ifndef platformio_build
 //#include <ESP8266mDNS.h>
@@ -259,10 +282,15 @@
 
 //WiFiManager & parameters, Global intialization. 
 WiFiManager wm;
+
+unsigned int  timeout   = 120; // seconds to run for
+unsigned long  startTimePortal = millis();
+bool portalRunning      = false;
+bool startAP            = false; // start AP and webserver if true, else start only webserver
+bool requestConfig		= false;
+
 WiFiManagerParameter octopi_api;
 WiFiManagerParameter octopi_ip;
-WiFiManagerParameter wifi_ssid;
-WiFiManagerParameter wifi_pass;
 
 #ifdef def_mqtt_server			
 WiFiManagerParameter mqtt_server;
@@ -297,6 +325,10 @@ WiFiManagerParameter mqtt_port;
 #else
 	#define BUTTON_RELEASED  HIGH
 	#define BUTTON_PRESSED    LOW
+#endif
+
+#ifndef MinMQTTconnectInterval
+#define MinMQTTconnectInterval 60000
 #endif
 
 #ifndef LED_blink_flash 
@@ -410,27 +442,20 @@ OctoprintApi* api=0;
 #define L_mqtt_user		16
 #define L_mqtt_pass		16
 #define L_mqtt_port		 2	
-#define L_wifi_ssid		16
-#define L_wifi_pass		16
 
 #define S_salt			0
 #define S_octopi_api 	0 + S_salt   	  + L_salt
 #define S_octopi_ip 	1 + S_octopi_api  + L_octopi_api
 
-#define S_wifi_ssid		0 + S_octopi_ip   + L_octopi_ip
-#define S_wifi_pass		1 + S_wifi_ssid	  + L_wifi_ssid
-
-#define S_mqtt_server   1 + S_wifi_pass   + L_wifi_pass
+#define S_mqtt_server   0 + S_octopi_ip   + L_octopi_ip
 #define S_mqtt_topic	1 + S_mqtt_server + L_mqtt_server
 #define S_mqtt_user		1 + S_mqtt_topic  + L_mqtt_topic
 #define S_mqtt_pass		1 + S_mqtt_user   + L_mqtt_user
 #define S_mqtt_port		1 + S_mqtt_pass   + L_mqtt_pass
 
-#define S_NEXT			1 + S_wifi_pass   + L_wifi_pass
+#define S_NEXT			1 + S_mqtt_port   + L_mqtt_port
 
 IPAddress ip_octopi_ip;
-char s_wifi_ssid[L_wifi_ssid+1];
-char s_wifi_pass[L_wifi_pass+1];
 
 char s_octopi_api[L_octopi_api+1];
 
@@ -440,6 +465,7 @@ char s_mqtt_topic[L_mqtt_topic+1];
 char s_mqtt_user[L_mqtt_user+1];
 char s_mqtt_pass[L_mqtt_pass+1];
 unsigned short i_mqtt_port;
+unsigned long LastMQTTconnectattempt = 0;
 
 state StateMQTT = nothing;			// Callback will set this, loop() will use it.
 #endif
@@ -454,6 +480,7 @@ unsigned long IntervalLED;
 unsigned long OctoprintInterval;
 unsigned long Time_print_started;
 unsigned long CrazyLED;
+
 
 // The state of the info LED
 #if LED_blink_flash==true
@@ -488,6 +515,19 @@ char *OctoplugoutState(state OctoPO_State) {
 	return ((char *)"");
 }
 
+bool PublishMQTT(const char* topicRoot, const char* topic, String msg, bool retained = false) {
+	char Topic[60];
+	strcpy(Topic,topicRoot);
+	strcat(Topic,topic);
+	return MQTTclient.publish(Topic,msg.c_str(), retained);
+}
+
+bool SubscribeMQTT(const char* topicRoot, const char* topic) {
+	char Topic[60];
+	strcpy(Topic,topicRoot);
+	strcat(Topic,topic);
+	return MQTTclient.subscribe(Topic);
+}
 
 #ifdef def_mqtt_server
 void MQTTcallback(char* topic, byte* payload, unsigned int length) {
@@ -496,11 +536,20 @@ void MQTTcallback(char* topic, byte* payload, unsigned int length) {
 		Serial.print(F("Message arrived ["));
 		Serial.print(topic);
 		Serial.print("] [");
+		#endif
+		
+		String MessageReceived = "";
 		for (unsigned int i = 0; i < length; i++) {
-		Serial.print((char)payload[i]);
+			#ifdef debug_
+			Serial.print((char)payload[i]);
+			#endif
+			MessageReceived += (char)payload[i];
 		}
+
+		#ifdef debug_
 		Serial.println("]");
 		#endif
+		
 		// Set State following the message received.
 		std::string TopicSwitch = s_mqtt_topic;
 		TopicSwitch += topic_OnOffSwitch;
@@ -511,21 +560,25 @@ void MQTTcallback(char* topic, byte* payload, unsigned int length) {
 		strcat(TopicSwitch,topic_OnOffSwitch);
 	*/	
 		if (TopicReceived == TopicSwitch) {
-			payload[length] = '\0'; // NULL terminate the array
-			if ((strcmp("ON", (char *)payload) == 0) or (strcmp("AFTERJOB", (char *)payload) == 0)) {
+			if ((MessageReceived == "ON") or (MessageReceived == "AFTERJOB")) {
+				PublishMQTT(s_mqtt_topic,"/DEBUG","--------------> ON");
 				StateMQTT = Waiting_for_print_activity;
-			} else if (strcmp("PERMON", (char *)payload) == 0) {
+			} else if (MessageReceived == "PERMON") {
+				PublishMQTT(s_mqtt_topic,"/DEBUG","--------------> PERMON");
 				StateMQTT = Switched_ON;
-			} else if (strcmp("OFF", (char *)payload) == 0) {
+			} else if (MessageReceived == "OFF") {
+				PublishMQTT(s_mqtt_topic,"/DEBUG","--------------> OFF");
 				StateMQTT = ready_for_shutting_down;
-			} else if (strcmp("FORCEOFF", (char *)payload) == 0) {
+			} else if (MessageReceived == "FORCEOFF") {
+				PublishMQTT(s_mqtt_topic,"/DEBUG","--------------> FORCEOFF");
 				StateMQTT = Relay_off;
 			} else {
+				PublishMQTT(s_mqtt_topic,"/DEBUG","--------------> nothing");
+				StateMQTT = nothing;
 				#ifdef debug_
-				//Serial.println(F("No message detected, received: "));
-				//Serial.println((char *)payload);
+				//Serial.println(F("No message detected, received: " + MessageReceived));
 				#endif		
-			}			
+			}	
 		} else {
 			#ifdef debug_
 			//Serial.println(F("No topic detected"));
@@ -540,77 +593,92 @@ void MQTTcallback(char* topic, byte* payload, unsigned int length) {
 #endif
 
 bool reconnect_mqtt() {
+	//If we get here mqtt is NOT connected! If mqtt is configured and active it tries to connect, but only once per minute.
 	#ifdef def_mqtt_server
-	if (mqtt_active) {
-		MQTTclient.setServer(s_mqtt_server, i_mqtt_port);
-		MQTTclient.setCallback(MQTTcallback);
+	if (!mqtt_active) {
+		return false;
+	} else {		//mqtt configured, active and a connection is desired, but not there.
 
-		// Try (just once) to reconnected if necessary
-		if (MQTTclient.connected()) {
-			#ifdef debug_
-			//Serial.print(F("reconnect_mqtt: MQTT CONNECTED *****************"));
-			#endif
-			return true;
+		unsigned long Now = millis(); 
+		if (Now-(unsigned long)MinMQTTconnectInterval< LastMQTTconnectattempt){ //Do not try to reconnect too often
+			return false;	
 		} else {
-			#ifdef debug_
-			Serial.println(F("Attempting MQTT connection..."));
-			#endif
-
-			// Create a random MQTTclient ID
-			String clientId = "OCTOPLUGOUT-";
-			clientId += String(random(0xffff), HEX);
-			WiFi.mode(WIFI_STA);
-			WiFi.hostname(op_hostname);
-
-			delay(100);
-			// Attempt to connect
-			if (MQTTclient.connect(clientId.c_str(),s_mqtt_user,s_mqtt_pass)) {
+			LastMQTTconnectattempt = Now;
+			// Try (just once) to reconnected if necessary
+			if (MQTTclient.connected()) {
 				#ifdef debug_
-				Serial.print(clientId);
-				Serial.print(F(" connected to MQTT server "));
-				Serial.println(s_mqtt_server);
+				//Serial.print(F("reconnect_mqtt: MQTT CONNECTED *****************"));
 				#endif
-				// Resubscribe
-				
-				if (SubscribeMQTT(s_mqtt_topic,(char *)topic_OnOffSwitch)) {
+				return true;
+			} else {
+
+				#ifdef debug_
+				Serial.println(F("Attempting MQTT connection..."));
+				#endif
+				// The config might have changed....			
+				MQTTclient.setServer(s_mqtt_server, i_mqtt_port);
+
+
+				// Create a random MQTTclient ID
+				String clientId = "OCTOPLUGOUT-";
+				clientId += String(random(0xffff), HEX);
+				WiFi.mode(WIFI_STA);
+				WiFi.hostname(op_hostname);
+
+				delay(100);
+				// Attempt to connect
+				if (MQTTclient.connect(clientId.c_str(),s_mqtt_user,s_mqtt_pass)) {
 					#ifdef debug_
-					Serial.print (F("Subscribed "));
-					Serial.println (s_mqtt_topic);
+					Serial.print(clientId);
+					Serial.print(F(" connected to MQTT server "));
+					Serial.println(s_mqtt_server);
 					#endif
+					
+					//prevent retained switch messages from harming: put in our "own" harmless message once.
+					//PublishMQTT(s_mqtt_topic,topic_OnOffSwitch,"-",true);
+					
+					// Resubscribe			
+					if (SubscribeMQTT(s_mqtt_topic,(char *)topic_OnOffSwitch)) {
+						#ifdef debug_
+						Serial.print (F("Subscribed "));
+						Serial.println (s_mqtt_topic);
+						#endif
+					} else {
+						#ifdef debug_
+						//Serial.println (F("Subscribe FAILED"));
+						#endif
+					}
+
+					return true;
+
 				} else {
 					#ifdef debug_
-					//Serial.println (F("Subscribe FAILED"));
+					Serial.print(F("failed, rc="));
+					Serial.println(MQTTclient.state());
+					Serial.println(s_mqtt_server);
+					//Serial.println(s_mqtt_user);
+					//Serial.println(s_mqtt_pass);
+					//Serial.println(s_mqtt_topic);
+					//Serial.println(" try again in next loop");
 					#endif
+
+					return false;
 				}
-
-				return true;
-
-			} else {
-				#ifdef debug_
-				Serial.print(F("failed, rc="));
-				Serial.println(MQTTclient.state());
-				Serial.println(s_mqtt_server);
-				//Serial.println(s_mqtt_user);
-				//Serial.println(s_mqtt_pass);
-				//Serial.println(s_mqtt_topic);
-				//Serial.println(" try again in next loop");
-				#endif
-
-				return false;
 			}
 		}
-		#endif
-	} else return false;
+	}
+	#endif
+	return false;
 }
 
 // SALT is save to eeprom, if it is wrong, it assumed to be corrupted and reinitialized
 #ifdef def_mqtt_server		
-	#define SALT 5937
-	#define L_EEPROM  9 + 2 + L_octopi_api + L_octopi_ip + L_wifi_ssid + L_wifi_pass + L_mqtt_server + L_mqtt_user + L_mqtt_pass + L_mqtt_topic + L_mqtt_port
+	#define SALT 5928
+	#define L_EEPROM  9 + 2 + L_octopi_api + L_octopi_ip + L_mqtt_server + L_mqtt_user + L_mqtt_pass + L_mqtt_topic + L_mqtt_port
 #else
-	#define SALT 5939	// By making SALTs different, EEPROM is reinitialized when mqtt_server mode is selected.
-	#define L_EEPROM  2 + 2 + L_octopi_api + L_octopi_ip + L_wifi_ssid + L_wifi_pass
-#endif
+	#define SALT 5929	// By making SALTs different, EEPROM is reinitialized when mqtt_server mode is selected.
+	#define L_EEPROM  2 + 2 + L_octopi_api + L_octopi_ip 
+	#endif
 
 void EEPROMputs(int strEEPROM, const char *save) {
 	byte i = 0;
@@ -631,8 +699,6 @@ void eeprom_saveconfig()
 	EEPROM.put(0, salt);
 	EEPROMputs(S_octopi_api, s_octopi_api);
 	EEPROMputIP(S_octopi_ip, ip_octopi_ip, L_octopi_ip);  
-	EEPROMputs(S_wifi_ssid, s_wifi_ssid);
-	EEPROMputs(S_wifi_pass, s_wifi_pass);
 	#ifdef def_mqtt_server		  
 	EEPROMputs(S_mqtt_server, s_mqtt_server);
 	EEPROMputs(S_mqtt_topic, s_mqtt_topic);
@@ -640,8 +706,6 @@ void eeprom_saveconfig()
 	EEPROMputs(S_mqtt_pass, s_mqtt_pass);
 	EEPROM.put(S_mqtt_port, i_mqtt_port);
 	#endif
-	EEPROM.put(S_wifi_ssid, s_wifi_ssid);
-	EEPROM.put(S_wifi_pass, s_wifi_pass);
 
 	EEPROM.commit();
 	EEPROM.end();
@@ -666,8 +730,6 @@ void eeprom_read()
 		//Serial.println(F("Reading EEPROM")); 
 		EEPROM.get(S_octopi_api, s_octopi_api);
 		for (byte i=0;i<4;i++) EEPROM.get(S_octopi_ip + i,ip_octopi_ip[i]);
-		EEPROM.get(S_wifi_ssid, s_wifi_ssid);
-		EEPROM.get(S_wifi_pass, s_wifi_pass);		
 		#ifdef def_mqtt_server		
 		EEPROM.get(S_mqtt_server, s_mqtt_server);
 		EEPROM.get(S_mqtt_topic, s_mqtt_topic);
@@ -691,8 +753,6 @@ void eeprom_read()
 		EEPROM.end();
 		//Serial.println(F("Initializing EEPROM from defaults"));
 		strcpy (s_octopi_api, def_octoprint_apikey);
-		strcpy (s_wifi_ssid, def_ssid);
-		strcpy (s_wifi_pass, def_password);
 		if (not ip_octopi_ip.fromString(def_octoprint_ip)) {
 			#ifdef debug_
 			//Serial.print(F("ip.Fromstring failed: "));
@@ -722,20 +782,6 @@ void eeprom_read()
 	};	  	  
 }
 
-bool PublishMQTT(const char* topicRoot, const char* topic, const char* msg) {
-	char Topic[60];
-	strcpy(Topic,topicRoot);
-	strcat(Topic,topic);
-	return MQTTclient.publish(Topic,msg);
-}
-
-bool SubscribeMQTT(const char* topicRoot, const char* topic) {
-	char Topic[60];
-	strcpy(Topic,topicRoot);
-	strcat(Topic,topic);
-	return MQTTclient.subscribe(Topic);
-}
-
 String getParam(String name){
   //read parameter from server, for customhmtl input
   String value;
@@ -752,8 +798,6 @@ void saveParamCallback(){
 
 	strcpy(s_octopi_api,getParam("O_API").c_str());
 	ip_octopi_ip.fromString(getParam("O_IP").c_str());
-	strcpy(s_wifi_ssid,getParam("SSID").c_str());
-	strcpy(s_wifi_pass,getParam("WiFiPass").c_str());
 	#ifdef def_mqtt_server
 	/*
 	strcpy(s_mqtt_server,mqtt_server.getValue().c_str());
@@ -774,6 +818,12 @@ void saveParamCallback(){
 	#endif
 	
 	eeprom_saveconfig();
+	
+	delay(2000);
+	//restart
+	ESP.restart();
+	while(true) delay(10);	//Do not continue
+	
 }
 
 
@@ -782,10 +832,10 @@ void setup_handle_autoconnect() {
 //		wm.startConfigPortal("SetupOctoPlugout","pass1234"); // no password protected ap
 //BUG?? In WiFimanager: configportal crashed the ESP on saving the param screen, 
 //      so for now erase wifi and autoconnect if you want the portal.
-	//wm.setCountry("NL"); 
+	wm.setCountry(WiFiCountry); 
 	
 	// set Hostname
-	//wm.setHostname("OctoPlugoutConfig");
+	wm.setHostname("SetupOctoPlugout");
 
 	// show password publicly in form
 	//wm.setShowPassword(true);
@@ -802,9 +852,6 @@ void setup_handle_autoconnect() {
 	new (&octopi_api) WiFiManagerParameter("O_API", "octopi API", s_octopi_api, L_octopi_api);
 	new (&octopi_ip) WiFiManagerParameter("O_IP", "octopi ip", ip_octopi_ip.toString().c_str(), L_octopi_ip*4);
 
-	new (&wifi_ssid) WiFiManagerParameter("SSID", "WiFi SSID", s_wifi_ssid, L_wifi_ssid);
-	new (&wifi_pass) WiFiManagerParameter("WiFiPass", "WiFi password", s_wifi_pass, L_wifi_pass);
-
 	#ifdef def_mqtt_server			
 	new (&mqtt_server) WiFiManagerParameter("M_server", "mqtt server", s_mqtt_server, L_mqtt_server);
 	new (&mqtt_topic) WiFiManagerParameter("M_topic", "mqtt topic", s_mqtt_topic, L_mqtt_topic);
@@ -814,9 +861,6 @@ void setup_handle_autoconnect() {
 	new (&mqtt_port) WiFiManagerParameter ("M_port", "mqtt port", msg, MSG_BUFFER_SIZE);
 	#endif
 
-	wm.addParameter(&wifi_ssid);
-	wm.addParameter(&wifi_pass);
-	
 	wm.addParameter(&octopi_ip);	
 	wm.addParameter(&octopi_api);	
 
@@ -832,8 +876,8 @@ void setup_handle_autoconnect() {
     wm.setSaveParamsCallback(saveParamCallback);
 	
 //	std::vector<const char *> menu = {"wifi","info","sep","restart","exit"};
-//	std::vector<const char *> menu = {"wifi","info","param","sep","restart","exit"};
-	std::vector<const char *> menu = {"info","param","sep","restart","exit"};
+	std::vector<const char *> menu = {"wifi","info","param","sep","restart","exit"};
+//	std::vector<const char *> menu = {"info","param","sep","restart","exit"};
 	wm.setMenu(menu);
 	
 	// set dark theme
@@ -844,62 +888,10 @@ void setup_handle_autoconnect() {
 	wm.setTimeout(60); // Wait in config portal, before trying the original wifi again.
 	//wm.setCaptivePortalEnable(false); // disable captive portal redirection
 	wm.setAPClientCheck(true); // avoid timeout if client connected to softap
+	
+	wm.autoConnect("SetupOctoplugout");
 }
 	
-bool reconnect_handle_autoconnect(bool forcePortal = false) {
-	
-	if (forcePortal) {
-		#ifdef debug_
-		Serial.print(F("Setup through startConfigPortal"));
-		#endif
-		WiFi.disconnect();
-		delay(500);
-		wm.resetSettings();
-		delay(500);
-	} else {
-		#ifdef debug_
-		if (!forcePortal) Serial.print(F("Setup through autoConnect"));
-		#endif
-	}	
-
-	WiFi.mode(WIFI_STA);
-	if (forcePortal) {
-		if (WifiAvailable()) { WiFi.disconnect();}
-	} else {
-		WiFi.begin(s_wifi_ssid,s_wifi_pass);
-		long Now=millis();
-		while ((WifiNotAvailable()) and ((millis()-Now)<15000)) delay(10);			// Try if connection is there for 5s
-	}
-	
-	wm.autoConnect("SetupOctoPlugout"); // no password protected ap: if the password / ssid are wrong the portal is active.
-
-	if (WifiNotAvailable()) {
-		WiFi.mode(WIFI_STA);
-		WiFi.begin(s_wifi_ssid,s_wifi_pass);
-		long Now=millis();
-		while ((WifiNotAvailable()) and ((millis()-Now)<15000)) delay(10);	
-	}		
-
-    if (WifiNotAvailable()) {
-        Serial.println(F("Failed to connect, restarting"));
-        ESP.restart();
-		while(true); //Do not continue....
-    } else {
-        //if you get here you have connected to the WiFi    
-        #ifdef debug_
-		Serial.println(F("connected...yeey"));
-		#endif
-    }
-	
-	// You only need to set one of the of following, but note: I COULD NOT GET THE HOSTNAME TO WORK, use IP address!
-	#ifdef UseIP
-		api = new OctoprintApi(API_client, ip_octopi_ip, octoprint_httpPort, s_octopi_api);				  // When using IP Address
-	#else
-		//char* octoprint_host = octoprintHost;    				// Or your hostname. Comment out one or the other.
-		//api = new OctoprintApi(API_client, octoprint_host, octoprint_httpPort, s_octopi_api);   // When using hostname 
-	#endif		
-	return true;
-}
 
 void setup () {
   // initialize digital pins for Sonoff
@@ -932,10 +924,6 @@ void setup () {
 	for (int i = 0; i <= 1; i++) {
 		delay(450);
 		for (int j = 1; j <= delays[i]; j++) {
-			#ifdef debug_
-			//Serial.print("Blink: ");
-			//Serial.println(j);
-			#endif
 			delay(300);
 			digitalWrite(PinLED, LED_ON);  // The LED is on...
 			delay(30);
@@ -945,17 +933,14 @@ void setup () {
 	delay(2000);
 	#endif
 
-
+	//Set the mqtt callback
+	MQTTclient.setCallback(MQTTcallback);
 
 	/* Explicitly set the ESP8266 to be a WiFi-client, otherwise, it by default,
 	 would try to act as both a client and an access-point and could cause
 	 network-issues with your other WiFi-devices on your WiFi-network. */
 	WiFi.mode(WIFI_STA);
 	
-	WiFi.begin(def_ssid,def_password);
-	long Now=millis();
-	while ((WifiNotAvailable()) and ((millis()-Now)<5000)) delay(10);			// Try if connection is 	
-
 	//Set the hostname
 	ArduinoOTA.setHostname(op_hostname);
 	#ifdef OTApass
@@ -1036,10 +1021,6 @@ void setup () {
 	
 	#ifdef debug_
 	Serial.println(F("[EEPROM] settings retrieved:"));
-	Serial.print(F("PARAM WiFi SSID= "));
-	Serial.println(s_wifi_ssid);
-	Serial.print(F("PARAM WiFi pass= "));
-	Serial.println(s_wifi_pass);
 	Serial.print(F("O_API          = "));
 	Serial.println(s_octopi_api);
 	Serial.print(F("PARAM O_IP     = "));
@@ -1071,55 +1052,61 @@ void setup () {
 	#endif
 	
 	setup_handle_autoconnect();
-	reconnect_handle_autoconnect();
-	
-	//ArduinoOTA.handle();
+
+	// Always define octopi server through its IP address.
+	api = new OctoprintApi(API_client, ip_octopi_ip, octoprint_httpPort, s_octopi_api);
+
+}
+
+void doWiFiManager(){
+  // is auto timeout portal running
+  if(portalRunning){
+    wm.process();
+    if((millis()-startTimePortal) > (timeout*1000)){
+      Serial.println("portaltimeout");
+      portalRunning = false;
+      if(startAP){
+        wm.stopConfigPortal();
+      }  
+      else{
+        wm.stopWebPortal();
+      } 
+   }
+  }
+
+  // is configuration portal requested?
+  if(requestConfig && (!portalRunning)) {
+	if(startAP){
+		#ifdef debug_
+		Serial.println(F("Button Pressed, Starting Config Portal"));
+		#endif
+		wm.setConfigPortalBlocking(false);
+		wm.startConfigPortal("SetupOctoplugout");
+	} else {
+		#ifdef debug_
+		Serial.println(F("Button Pressed, Starting Web Portal"));
+		#endif
+		wm.startWebPortal();
+	}  
+	portalRunning = true;
+	startTimePortal = millis();
+	}
 }
 
 void loop() {
 	
 	unsigned long Now = millis();
 	
+	#ifdef ESP8266
+	MDNS.update();
+	#endif
+	
+	doWiFiManager();
+	
 	bool mqtt_connected = false;
 
 	ArduinoOTA.handle();
 	
-	//Always try Wifi state and if necessary connect to wifi..	
-	if (WiFi.status() == WL_CONNECTED) {
-		#ifdef debug_
-		//Serial.println(F("In loop: Wifi was connected"));
-		#endif		//
-	} else {
-		// Now that it is not connected:
-		//    Attempt to initialize WIFI... ONLY once every minute....
-		//    This is useful if the Wifi is "lost" and reappears.	
-		if ((Now - WifiBeginDone) >= CheckWifiState) {
-			#ifdef debug_
-			//Serial.println(F("Autoconnecting to WIFI"));
-			#endif
-	
-			if (reconnect_handle_autoconnect()) {
-				//Serial.println(F("Now connected to WIFI"));
-			} else {
-				//Serial.println(F("Connect FAILED restarting..."));
-				ESP.restart();
-				while(true); //Do not continue....
-			}
-
-			WifiBeginDone = Now;
-
-			#ifdef debug_
-			Serial.print(F("Wifi connected, IP address: "));
-			Serial.println(WiFi.localIP());
-			#endif
-
-		} else {
-			#ifdef debug_
-			//Serial.println(F("Wifi disconnected: Wifi connecting was skipped"));
-			#endif		
-		}
-	}
-
 	#ifdef def_mqtt_server
 	if (mqtt_active) {
 		if (MQTTclient.connected()) {
@@ -1173,11 +1160,7 @@ void loop() {
 			if (digitalRead(PinButton) == BUTTON_RELEASED) {            //This means the button is (now) released
 				digitalWrite(PinLED, LED_OFF);					// Switch led off, in case we were "Crazy Blinking"
 				if ((Now - LastPressed) > reset_press_time) { // Checking whether it is a short, or RESET button press
-					bool res = reconnect_handle_autoconnect(true);	//Handle right away and be done with it.
-					if (not res) {
-						ESP.restart();
-						while(true); //Do not continue....
-					}
+					requestConfig = true;
 				} else if ((Now - LastPressed) > long_press_time) { // Checking whether it is a short, or long button press
 					LongPress = true;
 				} else {
@@ -1367,10 +1350,10 @@ void loop() {
 	if (mqtt_active) {
 		if (mqtt_connected) {
 			if (StateMQTT != nothing) {
-				// reset, so the On/Off switch is not taken into account a second time for whatever reason
-				PublishMQTT(s_mqtt_topic,topic_OnOffSwitch,"-");
 				State=StateMQTT;
 				StateMQTT=nothing;
+				// reset, so the On/Off switch is not taken into account a second time for whatever reason
+				PublishMQTT(s_mqtt_topic,topic_OnOffSwitch,"-",true);
 			}
 		}
 	}

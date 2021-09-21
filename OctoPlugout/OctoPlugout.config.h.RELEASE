@@ -147,6 +147,9 @@
 //Set to 175: Determines a extruder should reach at least 175°C, before triggering shutdown: colder => NO SHUTDOWN
 #define MinExtruderTemperature 175.0
 
+//Prevent trying to connect to a non existing mqtt server, by on trying e.g. once per minute (60000)
+#define MinMQTTconnectInterval 60000
+
 // The states are as follows (see also the state diagram)
 
 //------------------------------------------------------------------------------
