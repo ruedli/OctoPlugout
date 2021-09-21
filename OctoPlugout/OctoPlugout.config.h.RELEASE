@@ -5,14 +5,11 @@
 // Settings can be altered from a webportal built in the plug. No need to change anything, just less config work
 //=========================================================================================================
 // For sure set THESE defines for your printer / octoprint installation
+#define def_octoprint_apikey "D8****************************41"
 
-#define def_ssid "WiFiName"         		// your network SSID (name)
-#define def_password "WiFiPassword" 		// your network password
-#define def_octoprint_apikey "D8F4....etc"	// The octoprint API key
-
-// Set this define to use the IP address to connect to octoprint. I was unsuccessful with the "hostname" method
-// So SET THIS DEFINE, and use the IP method for connecting, as I have not been able to connect using the "hostname".
-#define UseIP
+   
+//Set country here: supported are CN, US, JP, NL, CH, FR   
+#define WiFiCountry "CH"
 
 // This is the IP address of your octoprint server , in the example 192.168.1.99 is configured, adapt for your printer
 // Make sure, your printer ALWAYS get the same IP address, this is normally configurable in your router (if not the case by default).
@@ -20,9 +17,6 @@
 
 #define octoprint_httpPort 80 //If you are connecting through a router this will work, but you need a random port forwarded to the
 							  //OctoPrint server from your router. Enter that port here if you are external
-
-// This is the hostname of your octoprint server , in the example 'octopi' is configured, Only applicable when UseIP is NOT defined!
-#define octoprintHost "octopi"
 
 //=======================================================================================================
 // This section is NEW since version 3.x
@@ -103,9 +97,10 @@
 #define PinRelay 12
 #define PinLED 13
 
-// In case LEDS or RELAYS are on instead of off and vice versa use these defines to fix:
+// In case LEDS, the BUTTON or RELAYS are on instead of off and vice versa use these defines to fix:
 //#define INVERT_RELAY
 //#define INVERT_LED
+//#define INVERT_BUTTON
 
 /* Initial state, use:
   Relay_off                   the plug starts "unpowered" when plugged in.
