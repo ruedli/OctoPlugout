@@ -2,9 +2,9 @@
  */
 
 #define Version_major 4
-#define Version_minor 5
+#define Version_minor 6
  
- /*
+/*
  *  v1.0 - 27 oct 2020
  *    Initial release 
  *
@@ -107,6 +107,11 @@
  *
  * v4.5 21 sep 2021
  * - Ensured that the build would succeed when no mqtt was used (def_mqtt_server undefined)
+ *
+ * v4.6 13 jan 2023
+ * - Document the as of octoprint 1.8 required use of user specific API keys.
+ *   No sourcecode changea are required, just update the API key in octoplugout.h
+ *
  * *=============================================================================================
  *
  *  An octoprint Arduino (ESP8266) sketch, to transform 

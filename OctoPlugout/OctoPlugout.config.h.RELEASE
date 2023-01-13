@@ -5,6 +5,11 @@
 // Settings can be altered from a webportal built in the plug. No need to change anything, just less config work
 //=========================================================================================================
 // For sure set THESE defines for your printer / octoprint installation
+//
+// DO NOT USE a so-called GLOBAL API KEY. Instead create an application key for an (optinally new) user with 
+// system priviledges. The system privilege is needed in order to shutdown the Raspberry PI before poweroff.
+// Use the generated user API KEY here:
+ 
 #define def_octoprint_apikey "D8****************************41"
 
    

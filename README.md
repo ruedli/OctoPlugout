@@ -53,6 +53,8 @@ With OctoprintAPI you also find other preprequisites for installation and making
 
 The "OctoPlugout" sketch has ALL its configuration parameters in one place: the file OctoPlugout.config.h. Copy it from OctoPlugout.config.h.RELEASED and adapt it to your Octoprint and WiFi. Adapt at least these parameters indicated in yellow, this depends on the IP address of Octoprint and Octiprints so-called API-key (accessible through the settings of Octoprint).
 
+As of Octoprint 1.8 it is recommended to no longer use so-call GLOBAL API keys. Instead, for a user that has "system" access privileges create an API key for that users. Then use that generated (user) API key in the Octoplugout code.
+
 ### OctoPlugout.config.h
 
 ![The critical configuration](https://github.com/ruedli/OctoPlugout/blob/master/images/config.jpg) 
@@ -317,6 +319,10 @@ Message on printer indicating that the plug is on (but no longer monitoring).
 	
 ** v4.5 21 sep 2021
 - Ensured that the build would succeed when no mqtt was used (def_mqtt_server undefined)
+
+** v4.6 13 jan 2023
+- Document the as of octoprint 1.8 required use of user specific API keys. No sourcecode changea are required, just update the API key in octoplugout.h
+
 
 ## Requests / Future To Do List
 - DONE ~~Avoid switching off if Octoprint is running and not shutdown: even if you try to force it, with a non-monitored "long press"~~
